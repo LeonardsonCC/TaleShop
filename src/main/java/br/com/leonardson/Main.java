@@ -1,6 +1,9 @@
 package br.com.leonardson;
 
 import br.com.leonardson.database.DatabaseManager;
+import br.com.leonardson.shop.command.ShopCommand;
+import br.com.leonardson.shop.ShopRegistry;
+import br.com.leonardson.shop.ShopRepository;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 
@@ -10,6 +13,7 @@ import java.util.logging.Level;
 public class Main extends JavaPlugin {
     private static Main instance;
     private DatabaseManager databaseManager;
+    private ShopRegistry shopRegistry;
 
     public Main(@Nonnull JavaPluginInit init) {
         super(init);
@@ -25,6 +29,10 @@ public class Main extends JavaPlugin {
         // Initialize database
         databaseManager = new DatabaseManager(this.getLogger());
         databaseManager.connect();
+
+        shopRegistry = new ShopRegistry(new ShopRepository(databaseManager));
+
+        getCommandRegistry().registerCommand(new ShopCommand());
     }
 
     @Override
@@ -43,6 +51,10 @@ public class Main extends JavaPlugin {
 
     public DatabaseManager getDatabaseManager() {
         return databaseManager;
+    }
+
+    public ShopRegistry getShopRegistry() {
+        return shopRegistry;
     }
 
 }

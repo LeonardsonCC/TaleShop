@@ -91,21 +91,65 @@ public class DatabaseManager {
      * Creates the necessary tables if they don't exist
      */
     private void initializeTables() {
-        String createPlayerStatsTable = """
+        String createShopsTable = """
             CREATE TABLE IF NOT EXISTS shops (
-                player_uuid TEXT PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                player_id TEXT NOT NULL,
                 player_name TEXT NOT NULL,
-                shop_name TEXT NOT NULL
+                shop_name TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                UNIQUE(player_id, shop_name)
             )
             """;
 
         try (Statement stmt = connection.createStatement()) {
-            stmt.execute(createPlayerStatsTable);
+            stmt.execute(createShopsTable);
+            migrateShopsTableIfNeeded();
             logger.at(Level.INFO).log("Database tables initialized successfully");
         } catch (SQLException e) {
             logger.at(Level.SEVERE).log("Failed to initialize database tables: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    private void migrateShopsTableIfNeeded() throws SQLException {
+        if (!shopsTableHasColumn("id")) {
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("""
+                    CREATE TABLE IF NOT EXISTS shops_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        player_id TEXT NOT NULL,
+                        player_name TEXT NOT NULL,
+                        shop_name TEXT NOT NULL,
+                        created_at INTEGER NOT NULL,
+                        UNIQUE(player_id, shop_name)
+                    )
+                    """);
+
+                stmt.execute("""
+                    INSERT INTO shops_new (player_id, player_name, shop_name, created_at)
+                    SELECT player_uuid, player_name, shop_name, strftime('%s','now')
+                    FROM shops
+                    """);
+
+                stmt.execute("DROP TABLE shops");
+                stmt.execute("ALTER TABLE shops_new RENAME TO shops");
+                logger.at(Level.INFO).log("Migrated shops table to new schema");
+            }
+        }
+    }
+
+    private boolean shopsTableHasColumn(String columnName) throws SQLException {
+        try (Statement stmt = connection.createStatement();
+             java.sql.ResultSet rs = stmt.executeQuery("PRAGMA table_info(shops)")) {
+            while (rs.next()) {
+                String name = rs.getString("name");
+                if (columnName.equalsIgnoreCase(name)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
