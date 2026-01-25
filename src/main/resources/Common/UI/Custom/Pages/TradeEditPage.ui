@@ -1,0 +1,175 @@
+$C = "../Common.ui";
+
+$C.@DecoratedContainer {
+  Anchor: (Width: 560, Height: 560);
+
+  #Title {
+    Group {
+      $C.@Title {
+        @Text = "Create Trade";
+      }
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+    Padding: (Left: 20, Right: 20, Top: 10, Bottom: 10);
+
+    Label #SelectionHint {
+      Text: "Select the input item";
+      Anchor: (Height: 24);
+      Style: (FontSize: 16, RenderBold: true, HorizontalAlignment: Center);
+    }
+
+    Group #SlotRow {
+      LayoutMode: Left;
+      Anchor: (Height: 150);
+      Padding: (Top: 8);
+
+      Group #InputColumn {
+        Anchor: (Width: 230);
+        LayoutMode: Top;
+
+        Label {
+          Text: "Input";
+          Anchor: (Height: 22);
+          Style: (FontSize: 16, RenderBold: true, HorizontalAlignment: Center);
+        }
+
+        Group {
+          Anchor: (Width: 96, Height: 96, Horizontal: 0);
+          LayoutMode: Center;
+
+          ItemGrid #InputSlot {
+            Anchor: (Width: 96, Height: 96, Horizontal: 0, Vertical: 0);
+            SlotsPerRow: 1;
+            Style: (
+              SlotSize: 96,
+              SlotIconSize: 96,
+              SlotSpacing: 0,
+              SlotBackground: "../Common/BlockSelectorSlotBackground.png"
+            );
+          }
+        }
+      }
+
+      Group {
+        Anchor: (Width: 40);
+      }
+
+      Group #OutputColumn {
+        Anchor: (Width: 230);
+        LayoutMode: Top;
+
+        Label {
+          Text: "Output";
+          Anchor: (Height: 22);
+          Style: (FontSize: 16, RenderBold: true, HorizontalAlignment: Center);
+        }
+
+        Group {
+          Anchor: (Width: 96, Height: 96, Horizontal: 0);
+          LayoutMode: Center;
+
+          ItemGrid #OutputSlot {
+            Anchor: (Width: 96, Height: 96, Horizontal: 0, Vertical: 0);
+            SlotsPerRow: 1;
+            Style: (
+              SlotSize: 96,
+              SlotIconSize: 96,
+              SlotSpacing: 0,
+              SlotBackground: "../Common/BlockSelectorSlotBackground.png"
+            );
+          }
+        }
+      }
+    }
+
+    Group #InventorySection {
+      LayoutMode: Top;
+      Anchor: (Height: 230);
+      Padding: (Top: 6);
+
+      Label {
+        Text: "Inventory";
+        Anchor: (Height: 20);
+        Style: (FontSize: 14, RenderBold: true);
+      }
+
+      ItemGrid #InventoryGrid {
+        Anchor: (Width: 520, Height: 190);
+        SlotsPerRow: 8;
+        Style: (
+          SlotSize: 60,
+          SlotIconSize: 60,
+          SlotSpacing: 4,
+          SlotBackground: "../Common/BlockSelectorSlotBackground.png"
+        );
+      }
+    }
+
+    Group #QuantityRow {
+      LayoutMode: Left;
+      Anchor: (Top: 10, Height: 64);
+      Padding: (Top: 6);
+
+      Group #InputQtyColumn {
+        Anchor: (Width: 230);
+        LayoutMode: Top;
+
+        Label {
+          Text: "Input Qty";
+          Anchor: (Height: 20);
+          Style: (FontSize: 14, RenderBold: true);
+        }
+
+        $C.@NumberField #InputQty {
+          @Anchor = (Top: 4, Width: 140);
+          PlaceholderText: "Qty";
+        }
+      }
+
+      Group {
+        Anchor: (Width: 40);
+      }
+
+      Group #OutputQtyColumn {
+        Anchor: (Width: 230);
+        LayoutMode: Top;
+
+        Label {
+          Text: "Output Qty";
+          Anchor: (Height: 20);
+          Style: (FontSize: 14, RenderBold: true);
+        }
+
+        $C.@NumberField #OutputQty {
+          @Anchor = (Top: 4, Width: 140);
+          PlaceholderText: "Qty";
+        }
+      }
+    }
+
+    Group #Actions {
+      Anchor: (Top: 10, Height: 48);
+      LayoutMode: Right;
+      Padding: (Top: 10);
+
+      $C.@CancelTextButton #CancelButton {
+        Text: "Cancel";
+        Anchor: (Width: 140);
+      }
+
+      Group {
+        Anchor: (Width: 12);
+      }
+
+      $C.@TextButton #ConfirmButton {
+        Text: "Confirm";
+        Anchor: (Width: 160);
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

@@ -1,7 +1,6 @@
 package br.com.leonardson.shop.ui;
 
 import br.com.leonardson.Main;
-import br.com.leonardson.shop.ShopNpcRegistry;
 import br.com.leonardson.shop.ShopTrade;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;

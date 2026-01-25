@@ -1,7 +1,7 @@
 {
   "Group": "Leonardson",
   "Name": "TaleShop",
-  "Version": "1.0.0",
+  "Version": "1.0.1",
   "Main": "br.com.leonardson.Main",
   "IncludesAssetPack": true
 }
