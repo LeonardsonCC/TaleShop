@@ -65,7 +65,7 @@ public class TraderMenuPage extends InteractiveCustomUIPage<TraderMenuPage.MenuE
         }
 
         if ("Preview".equals(data.action)) {
-            playerRef.sendMessage(Message.raw("Preview Shop is coming soon."));
+            player.getPageManager().openCustomPage(ref, store, new ShopBuyerPage(playerRef, ownerId, shopName));
             return;
         }
 
