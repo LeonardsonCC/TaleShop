@@ -16,6 +16,7 @@ import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import javax.annotation.Nonnull;
+import br.com.leonardson.taleshop.player.PlayerIdentity;
 
 public class TraderMenuPage extends InteractiveCustomUIPage<TraderMenuPage.MenuEventData> {
     private static final String PAGE_PATH = "Pages/TraderMenuPage.ui";
@@ -61,6 +62,12 @@ public class TraderMenuPage extends InteractiveCustomUIPage<TraderMenuPage.MenuE
         Player player = store.getComponent(ref, Player.getComponentType());
         PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
         if (player == null || playerRef == null) {
+            return;
+        }
+
+        String playerOwnerId = PlayerIdentity.resolveOwnerId(player);
+        if (!ownerId.equals(playerOwnerId)) {
+            player.getPageManager().openCustomPage(ref, store, new ShopBuyerPage(playerRef, ownerId, shopName));
             return;
         }
 
