@@ -113,6 +113,20 @@ public class ShopRegistry {
     }
 
     @Nonnull
+    public synchronized String getTraderUuid(@Nonnull String ownerId, @Nonnull String name) {
+        return getMutableShop(ownerId, name).traderUuid;
+    }
+
+    public synchronized void setTraderUuid(@Nonnull String ownerId, @Nonnull String name, @Nonnull String traderUuid) {
+        if (traderUuid.isBlank()) {
+            throw new IllegalArgumentException("Trader uuid is required.");
+        }
+        MutableShop shop = getMutableShop(ownerId, name);
+        shop.traderUuid = traderUuid;
+        save();
+    }
+
+    @Nonnull
     public synchronized List<Shop> listShops(@Nonnull String ownerId) {
         List<Shop> list = new ArrayList<>();
         Map<String, MutableShop> ownerShops = shopsByOwner.get(ownerId);
@@ -298,6 +312,8 @@ public class ShopRegistry {
             shop.ownerName = value == null ? "" : value;
         } else if ("name".equals(field) && value != null && !value.isBlank()) {
             shop.name = value;
+        } else if ("traderUuid".equals(field)) {
+            shop.traderUuid = value == null ? "" : value;
         }
     }
 
@@ -378,6 +394,9 @@ public class ShopRegistry {
                 String nameKey = encodeName(shop.name);
                 props.setProperty(SHOP_PREFIX + shop.ownerId + "." + nameKey + ".name", shop.name);
                 props.setProperty(SHOP_PREFIX + shop.ownerId + "." + nameKey + ".owner", shop.ownerName);
+                if (shop.traderUuid != null && !shop.traderUuid.isBlank()) {
+                    props.setProperty(SHOP_PREFIX + shop.ownerId + "." + nameKey + ".traderUuid", shop.traderUuid);
+                }
                 for (Trade trade : shop.trades.values()) {
                     String base = TRADE_PREFIX + shop.ownerId + "." + nameKey + "." + trade.id() + ".";
                     props.setProperty(base + "input", trade.inputItemId());
@@ -463,6 +482,7 @@ public class ShopRegistry {
         private final String ownerId;
         private String ownerName;
         private String name;
+        private String traderUuid = "";
         private final Map<Integer, Trade> trades = new TreeMap<>();
         private int nextTradeId = 1;
 
