@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public class ShopRegistry {
     public static final int MAX_TRADES = 20;
@@ -150,6 +151,21 @@ public class ShopRegistry {
         }
         list.sort(Comparator.comparing(Shop::name, String.CASE_INSENSITIVE_ORDER));
         return list;
+    }
+
+    @Nullable
+    public synchronized Shop findShopByTraderUuid(@Nonnull String traderUuid) {
+        if (traderUuid.isBlank()) {
+            return null;
+        }
+        for (Map<String, MutableShop> ownerShops : shopsByOwner.values()) {
+            for (MutableShop shop : ownerShops.values()) {
+                if (traderUuid.equals(shop.traderUuid)) {
+                    return shop.toShop();
+                }
+            }
+        }
+        return null;
     }
 
     @Nonnull

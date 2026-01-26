@@ -1,0 +1,38 @@
+$C = "../Common.ui";
+
+$C.@Container {
+  Anchor: (Horizontal: 0, Vertical: 0, Width: 420, Height: 220);
+
+  #Title {
+    Group {
+      LayoutMode: Left;
+
+      $C.@Title #TitleLabel {
+        @Text = "Trader";
+      }
+    }
+  }
+
+  #Content {
+    LayoutMode: Center;
+
+    Group #Buttons {
+      LayoutMode: Left;
+      Anchor: (Height: 48);
+
+      $C.@TextButton #PreviewShopButton {
+        Text: "Preview Shop";
+        Anchor: (Width: 180, Height: 40);
+      }
+
+      Group {
+        Anchor: (Width: 12);
+      }
+
+      $C.@TextButton #EditButton {
+        Text: "Edit";
+        Anchor: (Width: 120, Height: 40);
+      }
+    }
+  }
+}

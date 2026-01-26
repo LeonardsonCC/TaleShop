@@ -14,11 +14,21 @@ import br.com.leonardson.taleshop.shop.command.ShopCommands;
 
 public class TaleShop extends JavaPlugin {
     private static final HytaleLogger LOGGER = HytaleLogger.forEnclosingClass();
+    private static TaleShop instance;
     private ShopRegistry shopRegistry;
 
     public TaleShop(JavaPluginInit init) {
         super(init);
+        instance = this;
         LOGGER.atInfo().log("Hello from %s version %s", this.getName(), this.getManifest().getVersion().toString());
+    }
+
+    public static TaleShop getInstance() {
+        return instance;
+    }
+
+    public ShopRegistry getShopRegistry() {
+        return shopRegistry;
     }
 
     @Override
