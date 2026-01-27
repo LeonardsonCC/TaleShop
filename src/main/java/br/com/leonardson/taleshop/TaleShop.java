@@ -8,6 +8,8 @@ import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Roo
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 
+import br.com.leonardson.taleshop.config.PluginConfig;
+import br.com.leonardson.taleshop.config.PluginConfigManager;
 import br.com.leonardson.taleshop.interaction.TraderMessageInteraction;
 import br.com.leonardson.taleshop.shop.ShopRegistry;
 import br.com.leonardson.taleshop.shop.TraderInteractableSystem;
@@ -17,6 +19,7 @@ public class TaleShop extends JavaPlugin {
     private static final HytaleLogger LOGGER = HytaleLogger.forEnclosingClass();
     private static TaleShop instance;
     private ShopRegistry shopRegistry;
+    private PluginConfigManager configManager;
 
     public TaleShop(JavaPluginInit init) {
         super(init);
@@ -32,8 +35,19 @@ public class TaleShop extends JavaPlugin {
         return shopRegistry;
     }
 
+    public PluginConfig getPluginConfig() {
+        return configManager != null ? configManager.getConfig() : null;
+    }
+
     @Override
     protected void setup() {
+        configManager = new PluginConfigManager(ShopRegistry.resolveDataDirectory(this));
+        
+        // Log configuration
+        PluginConfig cfg = configManager.getConfig();
+        LOGGER.atInfo().log("Storage Distance Mode: %s", cfg.getStorageDistanceMode());
+        LOGGER.atInfo().log("Fixed Storage Distance: %d blocks", cfg.getFixedStorageDistance());
+        
         shopRegistry = new ShopRegistry(ShopRegistry.resolveDataDirectory(this));
         // Commands
         this.getCommandRegistry().registerCommand(new ShopCommands(shopRegistry));

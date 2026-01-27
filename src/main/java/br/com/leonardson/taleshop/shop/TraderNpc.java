@@ -4,6 +4,7 @@ import br.com.leonardson.taleshop.interaction.TraderMessageInteraction;
 import io.sentry.util.Random;
 
 import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.math.vector.Vector3f;
@@ -16,6 +17,8 @@ import com.hypixel.hytale.server.core.modules.entity.component.Interactable;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.modules.interaction.Interactions;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.server.core.universe.Universe;
+import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.npc.NPCPlugin;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import it.unimi.dsi.fastutil.Pair;
@@ -38,6 +41,7 @@ public class TraderNpc {
     private final String ROLE = ROLES.get(new Random().nextInt(ROLES.size())); //
     private static final String DEFAULT_TRADER_NAME = "Trader";
     private String traderName = DEFAULT_TRADER_NAME;
+    private String uuid;
 
     Ref<EntityStore> ref;
     NPCEntity npc;
@@ -101,11 +105,16 @@ public class TraderNpc {
             throw new IllegalStateException("Trader spawned, but UUID was not available.");
         }
 
+        this.uuid = traderUuid;
+
         this.ref = npcPair.first();
         this.npc = npcPair.second();
     }
 
     public String getUuid(Store<EntityStore> store) {
+        if (this.uuid != null && !this.uuid.isBlank()) {
+            return this.uuid;
+        }
         if (this.npc == null) {
             return null;
         }
@@ -142,6 +151,28 @@ public class TraderNpc {
         Object ref = tryResolveRef(store, uuid, traderUuid);
         if (ref instanceof Ref<?> resolvedRef) {
             return tryRemoveRef(store, resolvedRef);
+        }
+
+        Universe universe = Universe.get();
+        if (universe != null) {
+            boolean removed = false;
+            for (World world : universe.getWorlds().values()) {
+                EntityStore entityStore = world.getEntityStore();
+                Store<EntityStore> worldStore = entityStore.getStore();
+                Object worldRef = tryResolveRef(worldStore, uuid, traderUuid);
+                if (!(worldRef instanceof Ref<?> resolvedWorldRef)) {
+                    continue;
+                }
+                if (world.isInThread()) {
+                    removed = tryRemoveRef(worldStore, resolvedWorldRef) || removed;
+                } else {
+                    world.execute(() -> tryRemoveRef(worldStore, resolvedWorldRef));
+                    removed = true;
+                }
+            }
+            if (removed) {
+                return true;
+            }
         }
 
         NPCPlugin npcPlugin = NPCPlugin.get();
@@ -241,6 +272,15 @@ public class TraderNpc {
 
     private static Object tryResolveRef(Store<EntityStore> store, UUID uuid, String uuidText) {
         if (uuid != null) {
+            EntityStore entityStore = store.getExternalData();
+            if (entityStore != null) {
+                Ref<EntityStore> direct = entityStore.getRefFromUUID(uuid);
+                if (direct != null) {
+                    return direct;
+                }
+            }
+        }
+        if (uuid != null) {
             Object ref = tryInvokeForResult(store, "getEntity", uuid);
             if (ref != null) {
                 return ref;
@@ -261,10 +301,20 @@ public class TraderNpc {
     }
 
     private static boolean tryRemoveRef(Store<EntityStore> store, Ref<?> ref) {
-        return tryInvoke(store, "despawnEntity", ref)
+        if (tryInvoke(store, "removeEntity", ref, RemoveReason.REMOVE)
+                || tryInvoke(store, "despawnEntity", ref)
                 || tryInvoke(store, "removeEntity", ref)
                 || tryInvoke(store, "deleteEntity", ref)
-                || tryInvoke(store, "destroyEntity", ref);
+                || tryInvoke(store, "destroyEntity", ref)) {
+            return true;
+        }
+
+        EntityStore entityStore = store.getExternalData();
+        return entityStore != null && (tryInvoke(entityStore, "removeEntity", ref, RemoveReason.REMOVE)
+                || tryInvoke(entityStore, "despawnEntity", ref)
+                || tryInvoke(entityStore, "removeEntity", ref)
+                || tryInvoke(entityStore, "deleteEntity", ref)
+                || tryInvoke(entityStore, "destroyEntity", ref));
     }
 
     private static Object tryLoadComponentType(String className) {

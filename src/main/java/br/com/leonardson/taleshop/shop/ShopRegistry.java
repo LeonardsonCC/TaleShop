@@ -127,6 +127,12 @@ public class ShopRegistry {
         save();
     }
 
+    public synchronized void clearTraderUuid(@Nonnull String ownerId, @Nonnull String name) {
+        MutableShop shop = getMutableShop(ownerId, name);
+        shop.traderUuid = "";
+        save();
+    }
+
     @Nonnull
     public synchronized List<Shop> listShops(@Nonnull String ownerId) {
         List<Shop> list = new ArrayList<>();

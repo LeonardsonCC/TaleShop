@@ -14,14 +14,10 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import java.util.HashMap;
-import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 
 public class SpawnShopTraderCommand extends AbstractShopCommand {
     DefaultArg<String> argName;
-    private final Map<String, TraderNpc> activeTraders = new HashMap<>();
-
     public SpawnShopTraderCommand(ShopRegistry shopRegistry) {
         super("spawn", "Spawn shop trader", shopRegistry);
 
@@ -32,25 +28,19 @@ public class SpawnShopTraderCommand extends AbstractShopCommand {
     protected void execute(@NotNull CommandContext ctx, @NotNull Store<EntityStore> store, @NotNull Ref<EntityStore> ref, @NotNull PlayerRef playerRef, @NotNull World world) {
         String name = argName.get(ctx);
         if (name.isBlank()) {
-            throw new IllegalArgumentException("Usage: /shop spawn <shop name>");
+            throw new IllegalArgumentException("Usage: /shop npc spawn <shop name>");
         }
 
         Player player = ctx.senderAs(Player.class);
         String ownerId = PlayerIdentity.resolveOwnerId(player);
 
         Shop shop = shopRegistry.getShop(ownerId, name);
-        String key = ownerId + ":" + shop.name();
-        TraderNpc existingHandle = activeTraders.remove(key);
-        if (existingHandle != null) {
-            existingHandle.despawn(store);
-        }
-
         String existingTrader = shopRegistry.getTraderUuid(ownerId, shop.name());
         if (existingTrader != null && !existingTrader.isBlank()) {
             TraderNpc.despawnByUuid(store, existingTrader);
         }
 
-        TraderNpc traderNpc = new TraderNpc(shop.name() + " Trader");
+        TraderNpc traderNpc = new TraderNpc(shop.name());
         try {
             traderNpc.spawn(store, ref);
         } catch (IllegalStateException ex) {
@@ -58,8 +48,13 @@ public class SpawnShopTraderCommand extends AbstractShopCommand {
             return;
         }
 
-        shopRegistry.setTraderUuid(ownerId, shop.name(), traderNpc.getUuid(store));
-        activeTraders.put(key, traderNpc);
+        String traderUuid = traderNpc.getUuid(store);
+        if (traderUuid == null || traderUuid.isBlank()) {
+            ctx.sendMessage(Message.raw("Trader spawned, but UUID was not available."));
+            return;
+        }
+
+        shopRegistry.setTraderUuid(ownerId, shop.name(), traderUuid);
         ctx.sendMessage(Message.raw("Trader spawned for " + shop.name() + "."));
     }
 }

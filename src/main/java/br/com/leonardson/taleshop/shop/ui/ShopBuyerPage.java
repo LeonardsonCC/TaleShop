@@ -1,6 +1,7 @@
 package br.com.leonardson.taleshop.shop.ui;
 
 import br.com.leonardson.taleshop.TaleShop;
+import br.com.leonardson.taleshop.config.PluginConfig;
 import br.com.leonardson.taleshop.shop.Shop;
 import br.com.leonardson.taleshop.shop.ShopRegistry;
 import br.com.leonardson.taleshop.shop.trade.Trade;
@@ -44,7 +45,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuyerEventData> {
-    private static final int STOCK_RADIUS_BLOCKS = 5;
+    private static final int STOCK_RADIUS_BLOCKS = 2;
     private static final int MAX_ENTITY_SCAN = 512;
     private final String ownerId;
     private final String shopName;
@@ -352,6 +353,10 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
     }
 
     private double resolveHorizontalRadius(@Nonnull World world) {
+        PluginConfig config = TaleShop.getInstance().getPluginConfig();
+        if (config != null && config.isUsingFixedDistance()) {
+            return config.getFixedStorageDistance();
+        }
         try {
             return world.getGameplayConfig().getCraftingConfig().getBenchMaterialHorizontalChestSearchRadius();
         } catch (RuntimeException ignored) {
@@ -360,6 +365,10 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
     }
 
     private double resolveVerticalRadius(@Nonnull World world) {
+        PluginConfig config = TaleShop.getInstance().getPluginConfig();
+        if (config != null && config.isUsingFixedDistance()) {
+            return config.getFixedStorageDistance();
+        }
         try {
             return world.getGameplayConfig().getCraftingConfig().getBenchMaterialVerticalChestSearchRadius();
         } catch (RuntimeException ignored) {
