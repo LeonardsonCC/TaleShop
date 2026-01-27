@@ -8,7 +8,7 @@ $C = "../Common.ui";
 @SelectedGreenOverlay = PatchStyle(TexturePath: "../Common/BlockSelectorSlotBackground.png", Border: 4, Color: #00ff5a(1));
 
 $C.@Container {
-  Anchor: (Horizontal: 0, Vertical: 0, Width: 620, Height: 520);
+  Anchor: (Horizontal: 0, Vertical: 0, Width: 620, Height: 860);
 
   #Title {
     Group {
@@ -25,7 +25,7 @@ $C.@Container {
 
     Group #GridGroup {
       LayoutMode: Center;
-      Anchor: (Height: 420);
+      Anchor: (Height: 600);
 
       ItemGrid #InventoryGrid {
         SlotsPerRow: @SlotsPerRow;

@@ -25,8 +25,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class PlayerInventoryPage extends InteractiveCustomUIPage<PlayerInventoryPage.InventoryEventData> {
-    private static final String PAGE_PATH = "Pages/PlayerInventoryPage.ui";
+    private static final String PAGE_PATH = "Pages/TaleShopInventorySelectionPage.ui";
     private static final int NO_SELECTION = -1;
+    private static final int INVENTORY_GRID_COLUMNS = 9;
+    private static final int INVENTORY_GRID_ROWS = 10;
+    private static final int INVENTORY_GRID_CAPACITY = INVENTORY_GRID_COLUMNS * INVENTORY_GRID_ROWS;
     private static final Value<PatchStyle> FIRST_SELECTION_OVERLAY = Value.ref(PAGE_PATH, "SelectedRedOverlay");
     private static final Value<PatchStyle> SECOND_SELECTION_OVERLAY = Value.ref(PAGE_PATH, "SelectedGreenOverlay");
     private int firstSelectedSlot = NO_SELECTION;
@@ -146,11 +149,16 @@ public class PlayerInventoryPage extends InteractiveCustomUIPage<PlayerInventory
     private ItemGridSlot[] buildSlots(@Nonnull Inventory inventory) {
         ItemContainer combinedContainer = inventory.getCombinedEverything();
         int capacity = combinedContainer.getCapacity();
-        ItemGridSlot[] slots = new ItemGridSlot[capacity];
+        ItemGridSlot[] slots = new ItemGridSlot[INVENTORY_GRID_CAPACITY];
 
-        for (short slot = 0; slot < capacity; slot++) {
-            ItemStack itemStack = combinedContainer.getItemStack(slot);
-            ItemGridSlot gridSlot = ItemStack.isEmpty(itemStack) ? new ItemGridSlot() : new ItemGridSlot(itemStack);
+        for (short slot = 0; slot < INVENTORY_GRID_CAPACITY; slot++) {
+            ItemGridSlot gridSlot = new ItemGridSlot();
+            if (slot < capacity) {
+                ItemStack itemStack = combinedContainer.getItemStack(slot);
+                if (isRenderableItem(itemStack)) {
+                    gridSlot = new ItemGridSlot(toDisplayItem(itemStack));
+                }
+            }
             gridSlot.setActivatable(true);
 
             if (slot == firstSelectedSlot) {
@@ -171,8 +179,8 @@ public class PlayerInventoryPage extends InteractiveCustomUIPage<PlayerInventory
             ItemContainer combinedContainer = inventory.getCombinedEverything();
             if (selectedIndex >= 0 && selectedIndex < combinedContainer.getCapacity()) {
                 ItemStack itemStack = combinedContainer.getItemStack((short)selectedIndex);
-                if (!ItemStack.isEmpty(itemStack)) {
-                    slot = new ItemGridSlot(itemStack);
+                if (isRenderableItem(itemStack)) {
+                    slot = new ItemGridSlot(toDisplayItem(itemStack));
                 }
             }
         }
@@ -192,7 +200,7 @@ public class PlayerInventoryPage extends InteractiveCustomUIPage<PlayerInventory
         }
 
         ItemStack itemStack = combinedContainer.getItemStack((short)selectedIndex);
-        if (ItemStack.isEmpty(itemStack)) {
+        if (!isRenderableItem(itemStack)) {
             return 0;
         }
 
@@ -211,11 +219,34 @@ public class PlayerInventoryPage extends InteractiveCustomUIPage<PlayerInventory
         }
 
         ItemStack itemStack = combinedContainer.getItemStack((short)selectedIndex);
-        if (ItemStack.isEmpty(itemStack)) {
+        if (!isRenderableItem(itemStack)) {
             return "None";
         }
 
         return itemStack.getItemId();
+    }
+
+    private boolean isRenderableItem(@Nonnull ItemStack itemStack) {
+        if (ItemStack.isEmpty(itemStack)) {
+            return false;
+        }
+        String itemId = itemStack.getItemId();
+        if (itemId == null || itemId.isBlank()) {
+            return false;
+        }
+        return itemStack.getQuantity() > 0;
+    }
+
+    private ItemStack toDisplayItem(@Nonnull ItemStack itemStack) {
+        if (!isRenderableItem(itemStack)) {
+            return ItemStack.EMPTY;
+        }
+        ItemStack display = new ItemStack(itemStack.getItemId(), itemStack.getQuantity());
+        double maxDurability = itemStack.getMaxDurability();
+        if (maxDurability > 0) {
+            display = display.withMaxDurability(maxDurability).withDurability(itemStack.getDurability());
+        }
+        return display;
     }
 
     private void handleAction(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store, @Nonnull String action) {
