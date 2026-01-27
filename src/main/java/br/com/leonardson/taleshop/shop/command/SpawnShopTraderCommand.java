@@ -20,7 +20,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class SpawnShopTraderCommand extends AbstractShopCommand {
     DefaultArg<String> argName;
-    private final Map<String, TraderNpc.SpawnResult> activeTraders = new HashMap<>();
+    private final Map<String, TraderNpc> activeTraders = new HashMap<>();
 
     public SpawnShopTraderCommand(ShopRegistry shopRegistry) {
         super("spawn", "Spawn shop trader", shopRegistry);
@@ -40,9 +40,9 @@ public class SpawnShopTraderCommand extends AbstractShopCommand {
 
         Shop shop = shopRegistry.getShop(ownerId, name);
         String key = ownerId + ":" + shop.name();
-        TraderNpc.SpawnResult existingHandle = activeTraders.remove(key);
+        TraderNpc existingHandle = activeTraders.remove(key);
         if (existingHandle != null) {
-            TraderNpc.despawn(store, existingHandle);
+            existingHandle.despawn(store);
         }
 
         String existingTrader = shopRegistry.getTraderUuid(ownerId, shop.name());
@@ -51,16 +51,15 @@ public class SpawnShopTraderCommand extends AbstractShopCommand {
         }
 
         TraderNpc traderNpc = new TraderNpc(shop.name() + " Trader");
-        TraderNpc.SpawnResult spawnResult;
         try {
-            spawnResult = traderNpc.spawn(store, ref);
+            traderNpc.spawn(store, ref);
         } catch (IllegalStateException ex) {
             ctx.sendMessage(Message.raw(ex.getMessage()));
             return;
         }
 
-        shopRegistry.setTraderUuid(ownerId, shop.name(), spawnResult.uuid());
-        activeTraders.put(key, spawnResult);
+        shopRegistry.setTraderUuid(ownerId, shop.name(), traderNpc.getUuid(store));
+        activeTraders.put(key, traderNpc);
         ctx.sendMessage(Message.raw("Trader spawned for " + shop.name() + "."));
     }
 }

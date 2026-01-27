@@ -24,21 +24,20 @@ import java.util.UUID;
 import javax.annotation.Nonnull;
 
 public class TraderNpc {
-    private static final String DEFAULT_ROLE = "Klops_Merchant";
+    private static final String DEFAULT_ROLE = "Klops_Merchant"; // Feran_Civilian | Klops_Gentleman | Klops_Miner_Patrol | Outlander_Cultist | Skeleton_Pirate_Captain
     private static final String DEFAULT_TRADER_NAME = "Trader";
-
     private String traderName = DEFAULT_TRADER_NAME;
+
+    Ref<EntityStore> ref;
+    NPCEntity npc;
 
     public TraderNpc(String name) {
         this.traderName = name;
     }
 
-    public record SpawnResult(String uuid, Ref<EntityStore> ref, NPCEntity npc) {
-    }
-
     @Nonnull
-    public SpawnResult spawn(@Nonnull Store<EntityStore> store,
-                             @Nonnull Ref<EntityStore> ref) {
+    public void spawn(@Nonnull Store<EntityStore> store,
+            @Nonnull Ref<EntityStore> ref) {
         NPCPlugin npcPlugin = NPCPlugin.get();
         if (npcPlugin == null) {
             throw new IllegalStateException("NPC system is not available.");
@@ -68,16 +67,12 @@ public class TraderNpc {
                 spawnRotation,
                 null,
                 (npc, npcRef, entityStore) -> {
+                    this.ref = npcRef;
+                    this.npc = npc;
+
                     entityStore.putComponent(npcRef, DisplayNameComponent.getComponentType(),
                             new DisplayNameComponent(Message.raw(traderName)));
-                    entityStore.putComponent(npcRef, Interactable.getComponentType(), Interactable.INSTANCE);
-                    Interactions interactions = entityStore.getComponent(npcRef, Interactions.getComponentType());
-                    if (interactions == null) {
-                        interactions = new Interactions();
-                    }
-                    interactions.setInteractionId(InteractionType.Use, TraderMessageInteraction.ROOT_INTERACTION_ID);
-                    interactions.setInteractionHint("Trade");
-                    entityStore.putComponent(npcRef, Interactions.getComponentType(), interactions);
+                    applyInteractable(entityStore);
                     applyInvulnerable(npc, entityStore, npcRef);
                 });
 
@@ -95,19 +90,35 @@ public class TraderNpc {
             throw new IllegalStateException("Trader spawned, but UUID was not available.");
         }
 
-        return new SpawnResult(traderUuid, npcPair.first(), npcPair.second());
+        this.ref = npcPair.first();
+        this.npc = npcPair.second();
     }
 
-    public static boolean despawn(@Nonnull Store<EntityStore> store, @Nonnull SpawnResult result) {
-        boolean removed = false;
-        if (result.npc() != null) {
-            removed = tryInvoke(result.npc(), "despawn")
-                || tryInvoke(result.npc(), "remove")
-                || tryInvoke(result.npc(), "delete")
-                || tryInvoke(result.npc(), "destroy");
+    public String getUuid(Store<EntityStore> store) {
+        if (this.npc == null) {
+            return null;
         }
-        if (!removed && result.ref() != null) {
-            removed = tryRemoveRef(store, result.ref());
+        UUIDComponent uuidComponent = store.getComponent(this.ref, UUIDComponent.getComponentType());
+        if (uuidComponent == null) {
+            return null;
+        }
+        Object value = invokeFirst(uuidComponent, "getUuid", "getUUID", "getUniqueId", "getId");
+        if (value instanceof UUID uuid) {
+            return uuid.toString();
+        }
+        return null;
+    }
+
+    public boolean despawn(@Nonnull Store<EntityStore> store) {
+        boolean removed = false;
+        if (this.npc != null) {
+            removed = tryInvoke(this.npc, "despawn")
+                    || tryInvoke(this.npc, "remove")
+                    || tryInvoke(this.npc, "delete")
+                    || tryInvoke(this.npc, "destroy");
+        }
+        if (!removed && this.ref != null) {
+            removed = tryRemoveRef(store, this.ref);
         }
         return removed;
     }
@@ -127,23 +138,23 @@ public class TraderNpc {
             return false;
         }
         return tryInvoke(npcPlugin, "despawnEntity", uuid)
-            || tryInvoke(npcPlugin, "removeEntity", uuid)
-            || tryInvoke(npcPlugin, "deleteEntity", uuid)
-            || tryInvoke(npcPlugin, "despawnEntity", traderUuid)
-            || tryInvoke(npcPlugin, "removeEntity", traderUuid)
-            || tryInvoke(npcPlugin, "deleteEntity", traderUuid)
-            || tryInvoke(npcPlugin, "despawnEntity", store, uuid)
-            || tryInvoke(npcPlugin, "removeEntity", store, uuid)
-            || tryInvoke(npcPlugin, "deleteEntity", store, uuid);
+                || tryInvoke(npcPlugin, "removeEntity", uuid)
+                || tryInvoke(npcPlugin, "deleteEntity", uuid)
+                || tryInvoke(npcPlugin, "despawnEntity", traderUuid)
+                || tryInvoke(npcPlugin, "removeEntity", traderUuid)
+                || tryInvoke(npcPlugin, "deleteEntity", traderUuid)
+                || tryInvoke(npcPlugin, "despawnEntity", store, uuid)
+                || tryInvoke(npcPlugin, "removeEntity", store, uuid)
+                || tryInvoke(npcPlugin, "deleteEntity", store, uuid);
     }
 
     private static void applyInvulnerable(Object npc, Store<EntityStore> entityStore, Ref<EntityStore> npcRef) {
         if (npc != null) {
             if (tryInvoke(npc, "setInvulnerable", true)
-                || tryInvoke(npc, "setInvincible", true)
-                || tryInvoke(npc, "setImmortal", true)
-                || tryInvoke(npc, "setDamageable", false)
-                || tryInvoke(npc, "setCanBeDamaged", false)) {
+                    || tryInvoke(npc, "setInvincible", true)
+                    || tryInvoke(npc, "setImmortal", true)
+                    || tryInvoke(npc, "setDamageable", false)
+                    || tryInvoke(npc, "setCanBeDamaged", false)) {
                 return;
             }
         }
@@ -151,13 +162,33 @@ public class TraderNpc {
         applyInvulnerableComponent(entityStore, npcRef);
     }
 
+    public void applyInteractable(Store<EntityStore> entityStore) {
+        if (this.ref == null) {
+            return;
+        }
+
+        // make sure to not duplicate
+        if (entityStore.getComponent(this.ref, Interactable.getComponentType()) != null) {
+            entityStore.removeComponentIfExists(this.ref, Interactable.getComponentType());
+        }
+
+        entityStore.putComponent(this.ref, Interactable.getComponentType(), Interactable.INSTANCE);
+        Interactions interactions = entityStore.getComponent(this.ref, Interactions.getComponentType());
+        if (interactions == null) {
+            interactions = new Interactions();
+        }
+        interactions.setInteractionId(InteractionType.Use, TraderMessageInteraction.ROOT_INTERACTION_ID);
+        interactions.setInteractionHint("Trade");
+        entityStore.putComponent(this.ref, Interactions.getComponentType(), interactions);
+    }
+
     private static void applyInvulnerableComponent(Store<EntityStore> entityStore, Ref<EntityStore> npcRef) {
         String[] componentCandidates = new String[] {
-            "com.hypixel.hytale.server.core.modules.entity.component.Invulnerable",
-            "com.hypixel.hytale.server.core.modules.entity.component.InvulnerableComponent",
-            "com.hypixel.hytale.server.core.modules.entity.component.Invincibility",
-            "com.hypixel.hytale.server.core.modules.entity.component.Immortal",
-            "com.hypixel.hytale.server.core.modules.entity.component.ImmortalComponent"
+                "com.hypixel.hytale.server.core.modules.entity.component.Invulnerable",
+                "com.hypixel.hytale.server.core.modules.entity.component.InvulnerableComponent",
+                "com.hypixel.hytale.server.core.modules.entity.component.Invincibility",
+                "com.hypixel.hytale.server.core.modules.entity.component.Immortal",
+                "com.hypixel.hytale.server.core.modules.entity.component.ImmortalComponent"
         };
         for (String className : componentCandidates) {
             Object componentType = tryLoadComponentType(className);
@@ -220,9 +251,9 @@ public class TraderNpc {
 
     private static boolean tryRemoveRef(Store<EntityStore> store, Ref<?> ref) {
         return tryInvoke(store, "despawnEntity", ref)
-            || tryInvoke(store, "removeEntity", ref)
-            || tryInvoke(store, "deleteEntity", ref)
-            || tryInvoke(store, "destroyEntity", ref);
+                || tryInvoke(store, "removeEntity", ref)
+                || tryInvoke(store, "deleteEntity", ref)
+                || tryInvoke(store, "destroyEntity", ref);
     }
 
     private static Object tryLoadComponentType(String className) {
@@ -256,7 +287,8 @@ public class TraderNpc {
         }
     }
 
-    private static boolean tryPutComponent(Store<EntityStore> store, Ref<EntityStore> ref, Object componentType, Object component) {
+    private static boolean tryPutComponent(Store<EntityStore> store, Ref<EntityStore> ref, Object componentType,
+            Object component) {
         return tryInvoke(store, "putComponent", ref, componentType, component);
     }
 
@@ -311,7 +343,7 @@ public class TraderNpc {
                         continue;
                     }
                     if (!params[i].isAssignableFrom(arg.getClass())
-                        && !(params[i].isPrimitive() && isWrapper(params[i], arg.getClass()))) {
+                            && !(params[i].isPrimitive() && isWrapper(params[i], arg.getClass()))) {
                         matches = false;
                         break;
                     }
@@ -327,13 +359,13 @@ public class TraderNpc {
 
     private static boolean isWrapper(Class<?> primitiveType, Class<?> wrapperType) {
         return (primitiveType == boolean.class && wrapperType == Boolean.class)
-            || (primitiveType == int.class && wrapperType == Integer.class)
-            || (primitiveType == long.class && wrapperType == Long.class)
-            || (primitiveType == double.class && wrapperType == Double.class)
-            || (primitiveType == float.class && wrapperType == Float.class)
-            || (primitiveType == short.class && wrapperType == Short.class)
-            || (primitiveType == byte.class && wrapperType == Byte.class)
-            || (primitiveType == char.class && wrapperType == Character.class);
+                || (primitiveType == int.class && wrapperType == Integer.class)
+                || (primitiveType == long.class && wrapperType == Long.class)
+                || (primitiveType == double.class && wrapperType == Double.class)
+                || (primitiveType == float.class && wrapperType == Float.class)
+                || (primitiveType == short.class && wrapperType == Short.class)
+                || (primitiveType == byte.class && wrapperType == Byte.class)
+                || (primitiveType == char.class && wrapperType == Character.class);
     }
 
     private static Object invokeFirst(Object target, String... methodNames) {

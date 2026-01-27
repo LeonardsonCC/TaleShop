@@ -65,7 +65,7 @@ public class ShopRegistry {
         Map<String, MutableShop> ownerShops = shopsByOwner.computeIfAbsent(ownerId, id -> new TreeMap<>());
         String normalizedName = normalizeName(trimmedName);
         if (ownerShops.containsKey(normalizedName)) {
-            throw new IllegalArgumentException("You already have a shop named '" + trimmedName + "'.");
+            // throw new IllegalArgumentException("You already have a shop named '" + trimmedName + "'.");
         }
 
         MutableShop shop = new MutableShop(ownerId, ownerName, trimmedName);
@@ -509,7 +509,7 @@ public class ShopRegistry {
         }
 
         private Shop toShop() {
-            return new Shop(ownerId, ownerName, name, new ArrayList<>(trades.values()));
+            return new Shop(ownerId, ownerName, name, new ArrayList<>(trades.values()), traderUuid);
         }
     }
 

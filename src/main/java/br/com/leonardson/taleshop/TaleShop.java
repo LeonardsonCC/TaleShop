@@ -10,6 +10,7 @@ import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 
 import br.com.leonardson.taleshop.interaction.TraderMessageInteraction;
 import br.com.leonardson.taleshop.shop.ShopRegistry;
+import br.com.leonardson.taleshop.shop.TraderInteractableSystem;
 import br.com.leonardson.taleshop.shop.command.ShopCommands;
 
 public class TaleShop extends JavaPlugin {
@@ -43,17 +44,19 @@ public class TaleShop extends JavaPlugin {
         // Interactions
         this.getCodecRegistry(Interaction.CODEC)
              .register("TraderMessageInteraction", TraderMessageInteraction.class, TraderMessageInteraction.CODEC);
+
+        this.getEntityStoreRegistry().registerSystem(new TraderInteractableSystem(shopRegistry));
     }
 
     @Override
     protected void start() {
-         Interaction.getAssetStore().loadAssets(
-             getIdentifier().toString(),
-             List.of(new TraderMessageInteraction(TraderMessageInteraction.INTERACTION_ID))
-         );
-         RootInteraction.getAssetStore().loadAssets(
-             getIdentifier().toString(),
-             List.of(TraderMessageInteraction.ROOT)
-         );
+        Interaction.getAssetStore().loadAssets(
+            getIdentifier().toString(),
+            List.of(new TraderMessageInteraction(TraderMessageInteraction.INTERACTION_ID))
+        );
+        RootInteraction.getAssetStore().loadAssets(
+            getIdentifier().toString(),
+            List.of(TraderMessageInteraction.ROOT)
+        );
     }
 }
