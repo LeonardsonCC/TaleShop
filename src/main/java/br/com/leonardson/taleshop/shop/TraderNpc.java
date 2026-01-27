@@ -1,6 +1,8 @@
 package br.com.leonardson.taleshop.shop;
 
 import br.com.leonardson.taleshop.interaction.TraderMessageInteraction;
+import io.sentry.util.Random;
+
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
@@ -20,11 +22,20 @@ import it.unimi.dsi.fastutil.Pair;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.UUID;
 import javax.annotation.Nonnull;
 
 public class TraderNpc {
-    private static final String DEFAULT_ROLE = "Klops_Merchant"; // Feran_Civilian | Klops_Gentleman | Klops_Miner_Patrol | Outlander_Cultist | Skeleton_Pirate_Captain
+    private static final List<String> ROLES = List.of(
+            "Klops_Merchant" // for now, it's the only that not moves
+            // "Feran_Civilian",
+            // "Klops_Gentleman",
+            // "Klops_Miner_Patrol",
+            // "Outlander_Cultist",
+            // "Skeleton_Pirate_Captain"
+        );
+    private final String ROLE = ROLES.get(new Random().nextInt(ROLES.size())); //
     private static final String DEFAULT_TRADER_NAME = "Trader";
     private String traderName = DEFAULT_TRADER_NAME;
 
@@ -43,9 +54,9 @@ public class TraderNpc {
             throw new IllegalStateException("NPC system is not available.");
         }
 
-        int roleIndex = npcPlugin.getIndex(DEFAULT_ROLE);
+        int roleIndex = npcPlugin.getIndex(ROLE);
         if (roleIndex < 0) {
-            throw new IllegalStateException("Klops merchant role not found: " + DEFAULT_ROLE);
+            throw new IllegalStateException("Klops merchant role not found: " + ROLE);
         }
 
         TransformComponent transformComponent = store.getComponent(ref, TransformComponent.getComponentType());
