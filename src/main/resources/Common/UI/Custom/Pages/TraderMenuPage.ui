@@ -1,7 +1,7 @@
 $C = "../Common.ui";
 
 $C.@Container {
-  Anchor: (Horizontal: 0, Vertical: 0, Width: 420, Height: 220);
+  Anchor: (Width: 740, Height: 480);
 
   #Title {
     Group {

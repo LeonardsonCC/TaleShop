@@ -89,14 +89,14 @@ public class TradeListPage extends InteractiveCustomUIPage<TradeListPage.TradeLi
             if (i < trades.size()) {
                 Trade trade = trades.get(i);
                 commandBuilder.set(rowId + ".Visible", true);
-                commandBuilder.set("#TradeLabel" + row + ".Text", formatTrade(trade));
+                // commandBuilder.set("#TradeLabel" + row + ".Text", formatTrade(trade));
                 commandBuilder.set("#TradeInputQty" + row + ".Text", "x" + trade.inputQuantity());
                 commandBuilder.set("#TradeOutputQty" + row + ".Text", "x" + trade.outputQuantity());
                 commandBuilder.set("#TradeInputSlot" + row + ".Slots", buildTradeSlot(trade.inputItemId(), trade.inputQuantity()));
                 commandBuilder.set("#TradeOutputSlot" + row + ".Slots", buildTradeSlot(trade.outputItemId(), trade.outputQuantity()));
             } else {
                 commandBuilder.set(rowId + ".Visible", false);
-                commandBuilder.set("#TradeLabel" + row + ".Text", "");
+                // commandBuilder.set("#TradeLabel" + row + ".Text", "");
                 commandBuilder.set("#TradeInputQty" + row + ".Text", "");
                 commandBuilder.set("#TradeOutputQty" + row + ".Text", "");
             }
