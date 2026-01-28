@@ -25,6 +25,8 @@ import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -44,6 +46,8 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
     private int inputQuantity = 0;
     private int outputQuantity = 0;
     private boolean initialized = false;
+    private String inputItemId = null;
+    private String outputItemId = null;
 
     public TradeEditorPage(
         @Nonnull PlayerRef playerRef,
@@ -106,8 +110,8 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
         String title = tradeId == null ? "New Trade" : "Edit Trade";
         commandBuilder.set("#TitleLabel.Text", title);
         commandBuilder.set("#InventoryGrid.Slots", buildSlots(player.getInventory()));
-        commandBuilder.set("#InputSlot.Slots", buildSelectionSlot(player.getInventory(), firstSelectedSlot));
-        commandBuilder.set("#OutputSlot.Slots", buildSelectionSlot(player.getInventory(), secondSelectedSlot));
+        commandBuilder.set("#InputSlot.Slots", buildSelectionSlot(player.getInventory(), firstSelectedSlot, inputItemId, inputQuantity));
+        commandBuilder.set("#OutputSlot.Slots", buildSelectionSlot(player.getInventory(), secondSelectedSlot, outputItemId, outputQuantity));
         commandBuilder.set("#InputQuantityField.Value", inputQuantity);
         commandBuilder.set("#OutputQuantityField.Value", outputQuantity);
     }
@@ -142,25 +146,40 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
         }
 
         if (slotIndex == firstSelectedSlot) {
+            // Deselecting the first slot (input)
             firstSelectedSlot = NO_SELECTION;
+            inputItemId = null;
+            inputQuantity = 0;
         } else if (slotIndex == secondSelectedSlot) {
+            // Deselecting the second slot (output)
             secondSelectedSlot = NO_SELECTION;
+            outputItemId = null;
+            outputQuantity = 0;
         } else if (firstSelectedSlot == NO_SELECTION) {
+            // Selecting first slot (input)
             firstSelectedSlot = slotIndex;
+            inputItemId = getSelectionItemId(player.getInventory(), firstSelectedSlot);
+            inputQuantity = getSelectionQuantity(player.getInventory(), firstSelectedSlot);
         } else if (secondSelectedSlot == NO_SELECTION) {
+            // Selecting second slot (output)
             secondSelectedSlot = slotIndex;
+            outputItemId = getSelectionItemId(player.getInventory(), secondSelectedSlot);
+            outputQuantity = getSelectionQuantity(player.getInventory(), secondSelectedSlot);
         } else {
+            // Both slots occupied, move second to first and set new second
             firstSelectedSlot = secondSelectedSlot;
+            inputItemId = outputItemId;
+            inputQuantity = outputQuantity;
+            
             secondSelectedSlot = slotIndex;
+            outputItemId = getSelectionItemId(player.getInventory(), secondSelectedSlot);
+            outputQuantity = getSelectionQuantity(player.getInventory(), secondSelectedSlot);
         }
-
-        inputQuantity = getSelectionQuantity(player.getInventory(), firstSelectedSlot);
-        outputQuantity = getSelectionQuantity(player.getInventory(), secondSelectedSlot);
 
         UICommandBuilder commandBuilder = new UICommandBuilder();
         commandBuilder.set("#InventoryGrid.Slots", buildSlots(player.getInventory()));
-        commandBuilder.set("#InputSlot.Slots", buildSelectionSlot(player.getInventory(), firstSelectedSlot));
-        commandBuilder.set("#OutputSlot.Slots", buildSelectionSlot(player.getInventory(), secondSelectedSlot));
+        commandBuilder.set("#InputSlot.Slots", buildSelectionSlot(player.getInventory(), firstSelectedSlot, inputItemId, inputQuantity));
+        commandBuilder.set("#OutputSlot.Slots", buildSelectionSlot(player.getInventory(), secondSelectedSlot, outputItemId, outputQuantity));
         commandBuilder.set("#InputQuantityField.Value", inputQuantity);
         commandBuilder.set("#OutputQuantityField.Value", outputQuantity);
         this.sendUpdate(commandBuilder, null, false);
@@ -182,6 +201,8 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
         }
 
         Inventory inventory = player.getInventory();
+        inputItemId = trade.inputItemId();
+        outputItemId = trade.outputItemId();
         firstSelectedSlot = findSlotByItemId(inventory, trade.inputItemId());
         secondSelectedSlot = findSlotByItemId(inventory, trade.outputItemId());
         inputQuantity = trade.inputQuantity();
@@ -242,7 +263,7 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
         return slots;
     }
 
-    private ItemGridSlot[] buildSelectionSlot(@Nonnull Inventory inventory, int selectedIndex) {
+    private ItemGridSlot[] buildSelectionSlot(@Nonnull Inventory inventory, int selectedIndex, @Nullable String fallbackItemId, int fallbackQuantity) {
         ItemGridSlot slot = new ItemGridSlot();
         if (selectedIndex != NO_SELECTION) {
             ItemContainer combinedContainer = inventory.getCombinedEverything();
@@ -251,6 +272,12 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
                 if (isRenderableItem(itemStack)) {
                     slot = new ItemGridSlot(toDisplayItem(itemStack));
                 }
+            }
+        } else if (fallbackItemId != null && !fallbackItemId.isBlank()) {
+            // If no slot selected but we have a fallback itemId (from editing), create item from it
+            ItemStack itemStack = createItemStack(fallbackItemId, fallbackQuantity);
+            if (itemStack != null && isRenderableItem(itemStack)) {
+                slot = new ItemGridSlot(toDisplayItem(itemStack));
             }
         }
 
@@ -414,6 +441,277 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
         }
 
         return null;
+    }
+
+    @Nullable
+    private ItemStack createItemStack(@Nonnull String itemId, int quantity) {
+        ItemStack itemStack = tryCreateItemStack(itemId, quantity);
+        if (itemStack == null) {
+            itemStack = tryCreateItemStack(itemId);
+        }
+        if (itemStack == null) {
+            itemStack = tryCreateItemStackWithConstructor(itemId, quantity);
+        }
+        if (itemStack == null) {
+            itemStack = tryCreateItemStackWithConstructor(itemId);
+        }
+        if (itemStack == null) {
+            return null;
+        }
+        return applyQuantity(itemStack, quantity);
+    }
+
+    @Nullable
+    private ItemStack tryCreateItemStack(@Nonnull String itemId, int quantity) {
+        String[] methodNames = new String[]{"of", "create", "from", "fromItemId", "fromId"};
+        for (String name : methodNames) {
+            ItemStack stack = invokeFactory(name, itemId, quantity);
+            if (stack != null) {
+                return stack;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private ItemStack tryCreateItemStack(@Nonnull String itemId) {
+        String[] methodNames = new String[]{"of", "create", "from", "fromItemId", "fromId"};
+        for (String name : methodNames) {
+            ItemStack stack = invokeFactory(name, itemId);
+            if (stack != null) {
+                return stack;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private ItemStack tryCreateItemStackWithConstructor(@Nonnull String itemId, int quantity) {
+        return invokeConstructor(itemId, quantity);
+    }
+
+    @Nullable
+    private ItemStack tryCreateItemStackWithConstructor(@Nonnull String itemId) {
+        return invokeConstructor(itemId);
+    }
+
+    @Nullable
+    private ItemStack invokeFactory(@Nonnull String name, Object... args) {
+        ItemStack direct = invokeStaticFactory(name, args);
+        if (direct != null) {
+            return direct;
+        }
+        if (args.length == 2) {
+            Object swapped = args[0];
+            args[0] = args[1];
+            args[1] = swapped;
+            ItemStack swappedResult = invokeStaticFactory(name, args);
+            if (swappedResult != null) {
+                return swappedResult;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private ItemStack invokeStaticFactory(@Nonnull String name, Object... args) {
+        for (java.lang.reflect.Method method : ItemStack.class.getMethods()) {
+            if (!method.getName().equals(name)) {
+                continue;
+            }
+            if (!ItemStack.class.isAssignableFrom(method.getReturnType())) {
+                continue;
+            }
+            if (!java.lang.reflect.Modifier.isStatic(method.getModifiers())) {
+                continue;
+            }
+            Object[] converted = convertArguments(args, method.getParameterTypes());
+            if (converted == null) {
+                continue;
+            }
+            try {
+                Object result = method.invoke(null, converted);
+                if (result instanceof ItemStack stack) {
+                    return stack;
+                }
+            } catch (IllegalAccessException | InvocationTargetException ignored) {
+                continue;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private ItemStack invokeConstructor(Object... args) {
+        for (var ctor : ItemStack.class.getConstructors()) {
+            Object[] converted = convertArguments(args, ctor.getParameterTypes());
+            if (converted == null) {
+                continue;
+            }
+            try {
+                Object result = ctor.newInstance(converted);
+                if (result instanceof ItemStack stack) {
+                    return stack;
+                }
+            } catch (ReflectiveOperationException ignored) {
+                continue;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private Object[] convertArguments(Object[] args, Class<?>[] params) {
+        if (params.length != args.length) {
+            return null;
+        }
+        Object[] converted = new Object[params.length];
+        for (int i = 0; i < params.length; i++) {
+            Object value = convertArgument(args[i], params[i]);
+            if (value == null && args[i] != null) {
+                return null;
+            }
+            converted[i] = value;
+        }
+        return converted;
+    }
+
+    @Nullable
+    private Object convertArgument(Object arg, Class<?> paramType) {
+        if (arg == null) {
+            return null;
+        }
+        Class<?> boxed = boxType(paramType);
+        if (boxed.isInstance(arg)) {
+            return arg;
+        }
+        if (arg instanceof Number number) {
+            if (boxed == Integer.class) {
+                return number.intValue();
+            }
+            if (boxed == Short.class) {
+                return number.shortValue();
+            }
+            if (boxed == Long.class) {
+                return number.longValue();
+            }
+            if (boxed == Double.class) {
+                return number.doubleValue();
+            }
+            if (boxed == Float.class) {
+                return number.floatValue();
+            }
+            if (boxed == Byte.class) {
+                return number.byteValue();
+            }
+        }
+        if (boxed == String.class) {
+            return String.valueOf(arg);
+        }
+        if (boxed == CharSequence.class) {
+            return String.valueOf(arg);
+        }
+        if (arg instanceof String text) {
+            Object built = tryBuildFromString(paramType, text);
+            if (built != null) {
+                return built;
+            }
+        }
+        return null;
+    }
+
+    private Class<?> boxType(Class<?> type) {
+        if (!type.isPrimitive()) {
+            return type;
+        }
+        if (type == int.class) {
+            return Integer.class;
+        }
+        if (type == short.class) {
+            return Short.class;
+        }
+        if (type == long.class) {
+            return Long.class;
+        }
+        if (type == double.class) {
+            return Double.class;
+        }
+        if (type == float.class) {
+            return Float.class;
+        }
+        if (type == byte.class) {
+            return Byte.class;
+        }
+        if (type == boolean.class) {
+            return Boolean.class;
+        }
+        if (type == char.class) {
+            return Character.class;
+        }
+        return type;
+    }
+
+    @Nullable
+    private Object tryBuildFromString(Class<?> type, String value) {
+        try {
+            var ctor = type.getConstructor(String.class);
+            return ctor.newInstance(value);
+        } catch (ReflectiveOperationException ignored) {
+            // continue
+        }
+        String[] methodNames = new String[]{"of", "from", "valueOf", "fromString", "parse"};
+        for (String name : methodNames) {
+            try {
+                java.lang.reflect.Method method = type.getMethod(name, String.class);
+                if (!java.lang.reflect.Modifier.isStatic(method.getModifiers())) {
+                    continue;
+                }
+                return method.invoke(null, value);
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
+                continue;
+            }
+        }
+        return null;
+    }
+
+    private ItemStack applyQuantity(@Nonnull ItemStack itemStack, int quantity) {
+        ItemStack updated = invokeQuantityBuilder(itemStack, quantity, "withQuantity", "withAmount", "withCount");
+        if (updated != null) {
+            return updated;
+        }
+        if (invokeSetter(itemStack, quantity, "setQuantity", "setAmount", "setCount")) {
+            return itemStack;
+        }
+        return itemStack;
+    }
+
+    @Nullable
+    private ItemStack invokeQuantityBuilder(@Nonnull ItemStack itemStack, int quantity, String... methodNames) {
+        for (String name : methodNames) {
+            try {
+                Method method = itemStack.getClass().getMethod(name, int.class);
+                Object result = method.invoke(itemStack, quantity);
+                if (result instanceof ItemStack stack) {
+                    return stack;
+                }
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
+                continue;
+            }
+        }
+        return null;
+    }
+
+    private boolean invokeSetter(@Nonnull ItemStack itemStack, int quantity, String... methodNames) {
+        for (String name : methodNames) {
+            try {
+                Method method = itemStack.getClass().getMethod(name, int.class);
+                method.invoke(itemStack, quantity);
+                return true;
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
+                continue;
+            }
+        }
+        return false;
     }
 
     public static class TradeEventData {
