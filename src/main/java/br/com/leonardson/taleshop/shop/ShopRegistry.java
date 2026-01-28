@@ -6,38 +6,37 @@ import br.com.leonardson.taleshop.shop.trade.Trade;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Properties;
-import java.util.TreeMap;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class ShopRegistry {
     public static final int MAX_TRADES = 20;
-    private static final String SHOP_PREFIX = "shop.";
-    private static final String TRADE_PREFIX = "trade.";
 
     private final Path dataDirectory;
-    private final Path dataFile;
-    private final Map<String, Map<String, MutableShop>> shopsByOwner = new LinkedHashMap<>();
+    private final Path databaseFile;
+    private Connection connection;
 
     public ShopRegistry(@Nonnull Path dataDirectory) {
         this.dataDirectory = dataDirectory;
-        this.dataFile = dataDirectory.resolve("shops.properties");
-        load();
+        this.databaseFile = dataDirectory.resolve("shops.db");
+        initializeDatabase();
+        migrateFromPropertiesIfNeeded();
     }
 
     @Nonnull
@@ -52,6 +51,172 @@ public class ShopRegistry {
         return Paths.get(System.getProperty("user.dir"), "run", "mods", plugin.getName());
     }
 
+    private void initializeDatabase() {
+        try {
+            Files.createDirectories(dataDirectory);
+            String url = "jdbc:sqlite:" + databaseFile.toAbsolutePath();
+            connection = DriverManager.getConnection(url);
+            
+            // Enable foreign keys
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("PRAGMA foreign_keys = ON");
+            }
+            
+            createTables();
+        } catch (IOException | SQLException e) {
+            throw new RuntimeException("Failed to initialize database", e);
+        }
+    }
+
+    private void createTables() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            // Create shops table
+            stmt.execute(
+                "CREATE TABLE IF NOT EXISTS shops (" +
+                "    owner_id TEXT NOT NULL," +
+                "    name TEXT NOT NULL," +
+                "    owner_name TEXT NOT NULL," +
+                "    trader_uuid TEXT," +
+                "    PRIMARY KEY (owner_id, name)" +
+                ")"
+            );
+
+            // Create trades table
+            stmt.execute(
+                "CREATE TABLE IF NOT EXISTS trades (" +
+                "    id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "    owner_id TEXT NOT NULL," +
+                "    shop_name TEXT NOT NULL," +
+                "    trade_id INTEGER NOT NULL," +
+                "    input_item_id TEXT NOT NULL," +
+                "    input_quantity INTEGER NOT NULL," +
+                "    output_item_id TEXT NOT NULL," +
+                "    output_quantity INTEGER NOT NULL," +
+                "    FOREIGN KEY (owner_id, shop_name) REFERENCES shops(owner_id, name) ON DELETE CASCADE," +
+                "    UNIQUE (owner_id, shop_name, trade_id)" +
+                ")"
+            );
+
+            // Create index for faster lookups by trader UUID
+            stmt.execute(
+                "CREATE INDEX IF NOT EXISTS idx_shops_trader_uuid ON shops(trader_uuid)"
+            );
+        }
+    }
+
+    private void migrateFromPropertiesIfNeeded() {
+        Path propertiesFile = dataDirectory.resolve("shops.properties");
+        if (!Files.exists(propertiesFile)) {
+            return;
+        }
+
+        // Check if database is empty
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM shops")) {
+            if (rs.next() && rs.getInt(1) > 0) {
+                // Database already has data, skip migration
+                return;
+            }
+        } catch (SQLException e) {
+            // If error checking, skip migration
+            return;
+        }
+
+        // Perform migration
+        Properties props = new Properties();
+        try (InputStream inputStream = Files.newInputStream(propertiesFile)) {
+            props.load(inputStream);
+            migrateFromProperties(props);
+            
+            // Backup the old properties file
+            Path backupFile = dataDirectory.resolve("shops.properties.backup");
+            Files.move(propertiesFile, backupFile);
+        } catch (IOException | SQLException e) {
+            System.err.println("Failed to migrate from properties file: " + e.getMessage());
+        }
+    }
+
+    private void migrateFromProperties(Properties props) throws SQLException {
+        connection.setAutoCommit(false);
+        try {
+            // First pass: Create all shops
+            for (String key : props.stringPropertyNames()) {
+                if (key.startsWith("shop.")) {
+                    String[] parts = key.substring(5).split("\\.");
+                    if (parts.length >= 3 && "name".equals(parts[parts.length - 1])) {
+                        String ownerId = parts[0];
+                        String shopName = props.getProperty(key);
+                        String ownerName = props.getProperty("shop." + ownerId + "." + parts[1] + ".owner", "");
+                        String traderUuid = props.getProperty("shop." + ownerId + "." + parts[1] + ".traderUuid", "");
+                        
+                        createShopInternal(ownerId, ownerName, shopName, traderUuid);
+                    }
+                }
+            }
+
+            // Second pass: Add all trades
+            for (String key : props.stringPropertyNames()) {
+                if (key.startsWith("trade.")) {
+                    String[] parts = key.substring(6).split("\\.");
+                    if (parts.length >= 4) {
+                        String ownerId = parts[0];
+                        String shopNameEncoded = parts[1];
+                        
+                        // Get the shop name from the shop properties
+                        String shopName = props.getProperty("shop." + ownerId + "." + shopNameEncoded + ".name");
+                        if (shopName == null) continue;
+                        
+                        String tradeIdStr = parts[2];
+                        int tradeId = Integer.parseInt(tradeIdStr);
+                        
+                        String base = "trade." + ownerId + "." + shopNameEncoded + "." + tradeIdStr + ".";
+                        String inputItemId = props.getProperty(base + "input");
+                        int inputQty = Integer.parseInt(props.getProperty(base + "inputQty", "1"));
+                        String outputItemId = props.getProperty(base + "output");
+                        int outputQty = Integer.parseInt(props.getProperty(base + "outputQty", "1"));
+                        
+                        if (inputItemId != null && outputItemId != null) {
+                            addTradeInternal(ownerId, shopName, tradeId, inputItemId, inputQty, outputItemId, outputQty);
+                        }
+                    }
+                }
+            }
+            
+            connection.commit();
+        } catch (Exception e) {
+            connection.rollback();
+            throw e;
+        } finally {
+            connection.setAutoCommit(true);
+        }
+    }
+
+    private void createShopInternal(String ownerId, String ownerName, String name, String traderUuid) throws SQLException {
+        String sql = "INSERT OR IGNORE INTO shops (owner_id, name, owner_name, trader_uuid) VALUES (?, ?, ?, ?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, ownerId);
+            pstmt.setString(2, normalizeName(name));
+            pstmt.setString(3, ownerName);
+            pstmt.setString(4, traderUuid.isEmpty() ? null : traderUuid);
+            pstmt.executeUpdate();
+        }
+    }
+
+    private void addTradeInternal(String ownerId, String shopName, int tradeId, String inputItemId, int inputQty, String outputItemId, int outputQty) throws SQLException {
+        String sql = "INSERT OR IGNORE INTO trades (owner_id, shop_name, trade_id, input_item_id, input_quantity, output_item_id, output_quantity) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, ownerId);
+            pstmt.setString(2, normalizeName(shopName));
+            pstmt.setInt(3, tradeId);
+            pstmt.setString(4, inputItemId);
+            pstmt.setInt(5, inputQty);
+            pstmt.setString(6, outputItemId);
+            pstmt.setInt(7, outputQty);
+            pstmt.executeUpdate();
+        }
+    }
+
     @Nonnull
     public synchronized Shop createShop(@Nonnull String ownerId, @Nonnull String ownerName, @Nonnull String name) {
         if (ownerId.isBlank()) {
@@ -62,16 +227,34 @@ public class ShopRegistry {
             throw new IllegalArgumentException("Shop name is required.");
         }
 
-        Map<String, MutableShop> ownerShops = shopsByOwner.computeIfAbsent(ownerId, id -> new TreeMap<>());
         String normalizedName = normalizeName(trimmedName);
-        if (ownerShops.containsKey(normalizedName)) {
-            // throw new IllegalArgumentException("You already have a shop named '" + trimmedName + "'.");
+        
+        // Check if shop already exists
+        String checkSql = "SELECT 1 FROM shops WHERE owner_id = ? AND name = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(checkSql)) {
+            pstmt.setString(1, ownerId);
+            pstmt.setString(2, normalizedName);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    // Shop already exists, just return it
+                    return getShop(ownerId, trimmedName);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to check shop existence", e);
         }
 
-        MutableShop shop = new MutableShop(ownerId, ownerName, trimmedName);
-        ownerShops.put(normalizedName, shop);
-        save();
-        return shop.toShop();
+        String sql = "INSERT INTO shops (owner_id, name, owner_name, trader_uuid) VALUES (?, ?, ?, NULL)";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, ownerId);
+            pstmt.setString(2, normalizedName);
+            pstmt.setString(3, ownerName);
+            pstmt.executeUpdate();
+            
+            return new Shop(ownerId, ownerName, normalizedName, List.of(), "");
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to create shop", e);
+        }
     }
 
     @Nonnull
@@ -82,81 +265,176 @@ public class ShopRegistry {
             throw new IllegalArgumentException("Shop name is required.");
         }
 
-        MutableShop shop = getMutableShop(ownerId, trimmedCurrent);
-        Map<String, MutableShop> ownerShops = shopsByOwner.computeIfAbsent(ownerId, id -> new TreeMap<>());
         String currentKey = normalizeName(trimmedCurrent);
         String newKey = normalizeName(trimmedNew);
-        if (!currentKey.equals(newKey) && ownerShops.containsKey(newKey)) {
-            throw new IllegalArgumentException("You already have a shop named '" + trimmedNew + "'.");
+        
+        if (!currentKey.equals(newKey)) {
+            // Check if new name already exists
+            String checkSql = "SELECT 1 FROM shops WHERE owner_id = ? AND name = ?";
+            try (PreparedStatement pstmt = connection.prepareStatement(checkSql)) {
+                pstmt.setString(1, ownerId);
+                pstmt.setString(2, newKey);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    if (rs.next()) {
+                        throw new IllegalArgumentException("You already have a shop named '" + trimmedNew + "'.");
+                    }
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException("Failed to check shop name", e);
+            }
         }
 
-        ownerShops.remove(currentKey);
-        shop.name = trimmedNew;
-        ownerShops.put(newKey, shop);
-        save();
-        return shop.toShop();
+        String sql = "UPDATE shops SET name = ? WHERE owner_id = ? AND name = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, newKey);
+            pstmt.setString(2, ownerId);
+            pstmt.setString(3, currentKey);
+            int updated = pstmt.executeUpdate();
+            if (updated == 0) {
+                throw new IllegalArgumentException("Shop not found: " + currentName);
+            }
+            
+            return getShop(ownerId, newKey);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to rename shop", e);
+        }
     }
 
     public synchronized void deleteShop(@Nonnull String ownerId, @Nonnull String name) {
-        Map<String, MutableShop> ownerShops = shopsByOwner.get(ownerId);
-        if (ownerShops == null || ownerShops.remove(normalizeName(name)) == null) {
-            throw new IllegalArgumentException("Shop not found: " + name);
+        String sql = "DELETE FROM shops WHERE owner_id = ? AND name = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, ownerId);
+            pstmt.setString(2, normalizeName(name));
+            int deleted = pstmt.executeUpdate();
+            if (deleted == 0) {
+                throw new IllegalArgumentException("Shop not found: " + name);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to delete shop", e);
         }
-        if (ownerShops.isEmpty()) {
-            shopsByOwner.remove(ownerId);
-        }
-        save();
     }
 
     @Nonnull
     public synchronized Shop getShop(@Nonnull String ownerId, @Nonnull String name) {
-        return getMutableShop(ownerId, name).toShop();
+        String sql = "SELECT owner_name, trader_uuid FROM shops WHERE owner_id = ? AND name = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, ownerId);
+            pstmt.setString(2, normalizeName(name));
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (!rs.next()) {
+                    throw new IllegalArgumentException("Shop not found: " + name);
+                }
+                
+                String ownerName = rs.getString("owner_name");
+                String traderUuid = rs.getString("trader_uuid");
+                
+                List<Trade> trades = loadTrades(ownerId, normalizeName(name));
+                
+                return new Shop(ownerId, ownerName, normalizeName(name), trades, traderUuid == null ? "" : traderUuid);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to get shop", e);
+        }
     }
 
     @Nonnull
     public synchronized String getTraderUuid(@Nonnull String ownerId, @Nonnull String name) {
-        return getMutableShop(ownerId, name).traderUuid;
+        String sql = "SELECT trader_uuid FROM shops WHERE owner_id = ? AND name = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, ownerId);
+            pstmt.setString(2, normalizeName(name));
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (!rs.next()) {
+                    throw new IllegalArgumentException("Shop not found: " + name);
+                }
+                String traderUuid = rs.getString("trader_uuid");
+                return traderUuid == null ? "" : traderUuid;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to get trader UUID", e);
+        }
     }
 
     public synchronized void setTraderUuid(@Nonnull String ownerId, @Nonnull String name, @Nonnull String traderUuid) {
         if (traderUuid.isBlank()) {
             throw new IllegalArgumentException("Trader uuid is required.");
         }
-        MutableShop shop = getMutableShop(ownerId, name);
-        shop.traderUuid = traderUuid;
-        save();
+        
+        String sql = "UPDATE shops SET trader_uuid = ? WHERE owner_id = ? AND name = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, traderUuid);
+            pstmt.setString(2, ownerId);
+            pstmt.setString(3, normalizeName(name));
+            int updated = pstmt.executeUpdate();
+            if (updated == 0) {
+                throw new IllegalArgumentException("Shop not found: " + name);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to set trader UUID", e);
+        }
     }
 
     public synchronized void clearTraderUuid(@Nonnull String ownerId, @Nonnull String name) {
-        MutableShop shop = getMutableShop(ownerId, name);
-        shop.traderUuid = "";
-        save();
+        String sql = "UPDATE shops SET trader_uuid = NULL WHERE owner_id = ? AND name = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, ownerId);
+            pstmt.setString(2, normalizeName(name));
+            int updated = pstmt.executeUpdate();
+            if (updated == 0) {
+                throw new IllegalArgumentException("Shop not found: " + name);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to clear trader UUID", e);
+        }
     }
 
     @Nonnull
     public synchronized List<Shop> listShops(@Nonnull String ownerId) {
-        List<Shop> list = new ArrayList<>();
-        Map<String, MutableShop> ownerShops = shopsByOwner.get(ownerId);
-        if (ownerShops == null) {
-            return list;
+        List<Shop> shops = new ArrayList<>();
+        String sql = "SELECT name, owner_name, trader_uuid FROM shops WHERE owner_id = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, ownerId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    String name = rs.getString("name");
+                    String ownerName = rs.getString("owner_name");
+                    String traderUuid = rs.getString("trader_uuid");
+                    
+                    List<Trade> trades = loadTrades(ownerId, name);
+                    
+                    shops.add(new Shop(ownerId, ownerName, name, trades, traderUuid == null ? "" : traderUuid));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to list shops", e);
         }
-        for (MutableShop shop : ownerShops.values()) {
-            list.add(shop.toShop());
-        }
-        list.sort(Comparator.comparing(Shop::name, String.CASE_INSENSITIVE_ORDER));
-        return list;
+        
+        shops.sort(Comparator.comparing(Shop::name, String.CASE_INSENSITIVE_ORDER));
+        return shops;
     }
 
     @Nonnull
     public synchronized List<Shop> listAllShops() {
-        List<Shop> list = new ArrayList<>();
-        for (Map<String, MutableShop> ownerShops : shopsByOwner.values()) {
-            for (MutableShop shop : ownerShops.values()) {
-                list.add(shop.toShop());
+        List<Shop> shops = new ArrayList<>();
+        String sql = "SELECT owner_id, name, owner_name, trader_uuid FROM shops";
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                String ownerId = rs.getString("owner_id");
+                String name = rs.getString("name");
+                String ownerName = rs.getString("owner_name");
+                String traderUuid = rs.getString("trader_uuid");
+                
+                List<Trade> trades = loadTrades(ownerId, name);
+                
+                shops.add(new Shop(ownerId, ownerName, name, trades, traderUuid == null ? "" : traderUuid));
             }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to list all shops", e);
         }
-        list.sort(Comparator.comparing(Shop::name, String.CASE_INSENSITIVE_ORDER));
-        return list;
+        
+        shops.sort(Comparator.comparing(Shop::name, String.CASE_INSENSITIVE_ORDER));
+        return shops;
     }
 
     @Nullable
@@ -164,14 +442,26 @@ public class ShopRegistry {
         if (traderUuid.isBlank()) {
             return null;
         }
-        for (Map<String, MutableShop> ownerShops : shopsByOwner.values()) {
-            for (MutableShop shop : ownerShops.values()) {
-                if (traderUuid.equals(shop.traderUuid)) {
-                    return shop.toShop();
+        
+        String sql = "SELECT owner_id, name, owner_name FROM shops WHERE trader_uuid = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, traderUuid);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (!rs.next()) {
+                    return null;
                 }
+                
+                String ownerId = rs.getString("owner_id");
+                String name = rs.getString("name");
+                String ownerName = rs.getString("owner_name");
+                
+                List<Trade> trades = loadTrades(ownerId, name);
+                
+                return new Shop(ownerId, ownerName, name, trades, traderUuid);
             }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to find shop by trader UUID", e);
         }
-        return null;
     }
 
     @Nonnull
@@ -183,21 +473,46 @@ public class ShopRegistry {
         @Nonnull String outputItemId,
         int outputQuantity
     ) {
-        MutableShop shop = getMutableShop(ownerId, shopName);
-        if (shop.trades.size() >= MAX_TRADES) {
-            throw new IllegalArgumentException("Shop already has the maximum of " + MAX_TRADES + " trades.");
-        }
-
         validateItem(inputItemId, "Input item");
         validateItem(outputItemId, "Output item");
         validateQuantity(inputQuantity);
         validateQuantity(outputQuantity);
 
-        int tradeId = shop.nextTradeId++;
-        Trade trade = new Trade(tradeId, inputItemId, inputQuantity, outputItemId, outputQuantity);
-        shop.trades.put(tradeId, trade);
-        save();
-        return trade;
+        String normalizedName = normalizeName(shopName);
+        
+        // Check trade count
+        String countSql = "SELECT COUNT(*) FROM trades WHERE owner_id = ? AND shop_name = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(countSql)) {
+            pstmt.setString(1, ownerId);
+            pstmt.setString(2, normalizedName);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next() && rs.getInt(1) >= MAX_TRADES) {
+                    throw new IllegalArgumentException("Shop already has the maximum of " + MAX_TRADES + " trades.");
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to check trade count", e);
+        }
+        
+        // Get next trade ID
+        int tradeId = getNextTradeId(ownerId, normalizedName);
+        
+        String sql = "INSERT INTO trades (owner_id, shop_name, trade_id, input_item_id, input_quantity, output_item_id, output_quantity) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, ownerId);
+            pstmt.setString(2, normalizedName);
+            pstmt.setInt(3, tradeId);
+            pstmt.setString(4, inputItemId);
+            pstmt.setInt(5, inputQuantity);
+            pstmt.setString(6, outputItemId);
+            pstmt.setInt(7, outputQuantity);
+            pstmt.executeUpdate();
+            
+            return new Trade(tradeId, inputItemId, inputQuantity, outputItemId, outputQuantity);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to add trade", e);
+        }
     }
 
     public synchronized void updateTrade(
@@ -209,26 +524,83 @@ public class ShopRegistry {
         @Nonnull String outputItemId,
         int outputQuantity
     ) {
-        MutableShop shop = getMutableShop(ownerId, shopName);
-        if (!shop.trades.containsKey(tradeId)) {
-            throw new IllegalArgumentException("Trade not found: " + tradeId);
-        }
-
         validateItem(inputItemId, "Input item");
         validateItem(outputItemId, "Output item");
         validateQuantity(inputQuantity);
         validateQuantity(outputQuantity);
 
-        shop.trades.put(tradeId, new Trade(tradeId, inputItemId, inputQuantity, outputItemId, outputQuantity));
-        save();
+        String sql = "UPDATE trades SET input_item_id = ?, input_quantity = ?, output_item_id = ?, output_quantity = ? " +
+                     "WHERE owner_id = ? AND shop_name = ? AND trade_id = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, inputItemId);
+            pstmt.setInt(2, inputQuantity);
+            pstmt.setString(3, outputItemId);
+            pstmt.setInt(4, outputQuantity);
+            pstmt.setString(5, ownerId);
+            pstmt.setString(6, normalizeName(shopName));
+            pstmt.setInt(7, tradeId);
+            
+            int updated = pstmt.executeUpdate();
+            if (updated == 0) {
+                throw new IllegalArgumentException("Trade not found: " + tradeId);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to update trade", e);
+        }
     }
 
     public synchronized void removeTrade(@Nonnull String ownerId, @Nonnull String shopName, int tradeId) {
-        MutableShop shop = getMutableShop(ownerId, shopName);
-        if (shop.trades.remove(tradeId) == null) {
-            throw new IllegalArgumentException("Trade not found: " + tradeId);
+        String sql = "DELETE FROM trades WHERE owner_id = ? AND shop_name = ? AND trade_id = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, ownerId);
+            pstmt.setString(2, normalizeName(shopName));
+            pstmt.setInt(3, tradeId);
+            
+            int deleted = pstmt.executeUpdate();
+            if (deleted == 0) {
+                throw new IllegalArgumentException("Trade not found: " + tradeId);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to remove trade", e);
         }
-        save();
+    }
+
+    private List<Trade> loadTrades(String ownerId, String shopName) throws SQLException {
+        List<Trade> trades = new ArrayList<>();
+        String sql = "SELECT trade_id, input_item_id, input_quantity, output_item_id, output_quantity " +
+                     "FROM trades WHERE owner_id = ? AND shop_name = ? ORDER BY trade_id";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, ownerId);
+            pstmt.setString(2, shopName);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    int tradeId = rs.getInt("trade_id");
+                    String inputItemId = rs.getString("input_item_id");
+                    int inputQuantity = rs.getInt("input_quantity");
+                    String outputItemId = rs.getString("output_item_id");
+                    int outputQuantity = rs.getInt("output_quantity");
+                    
+                    trades.add(new Trade(tradeId, inputItemId, inputQuantity, outputItemId, outputQuantity));
+                }
+            }
+        }
+        return trades;
+    }
+
+    private int getNextTradeId(String ownerId, String shopName) {
+        String sql = "SELECT COALESCE(MAX(trade_id), 0) + 1 FROM trades WHERE owner_id = ? AND shop_name = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, ownerId);
+            pstmt.setString(2, shopName);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+                return 1;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to get next trade ID", e);
+        }
     }
 
     private void validateItem(String itemId, String label) {
@@ -243,233 +615,8 @@ public class ShopRegistry {
         }
     }
 
-    private MutableShop getMutableShop(String ownerId, String name) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Shop name is required.");
-        }
-        Map<String, MutableShop> ownerShops = shopsByOwner.get(ownerId);
-        if (ownerShops == null) {
-            throw new IllegalArgumentException("Shop not found: " + name);
-        }
-        MutableShop shop = ownerShops.get(normalizeName(name));
-        if (shop == null) {
-            throw new IllegalArgumentException("Shop not found: " + name);
-        }
-        return shop;
-    }
-
-    private void load() {
-        shopsByOwner.clear();
-        Properties props = new Properties();
-        if (!Files.exists(dataFile)) {
-            return;
-        }
-
-        try (InputStream inputStream = Files.newInputStream(dataFile)) {
-            props.load(inputStream);
-        } catch (IOException ignored) {
-            return;
-        }
-
-        Map<String, TradeBuilder> tradeBuilders = new LinkedHashMap<>();
-        Map<String, String> legacyShopNames = new LinkedHashMap<>();
-        for (String key : props.stringPropertyNames()) {
-            String value = props.getProperty(key);
-            if (key.startsWith(SHOP_PREFIX)) {
-                handleShopProperty(key, value, legacyShopNames);
-            } else if (key.startsWith(TRADE_PREFIX)) {
-                parseTradeProperty(key, value, tradeBuilders, legacyShopNames);
-            }
-        }
-
-        for (TradeBuilder builder : tradeBuilders.values()) {
-            if (!builder.isComplete()) {
-                continue;
-            }
-            MutableShop shop = getLoadedShop(builder.ownerId, builder.shopName);
-            if (shop == null) {
-                continue;
-            }
-            Trade trade = builder.build();
-            shop.trades.put(trade.id(), trade);
-            shop.nextTradeId = Math.max(shop.nextTradeId, trade.id() + 1);
-        }
-    }
-
-    private void handleShopProperty(String key, String value, Map<String, String> legacyShopNames) {
-        String remainder = key.substring(SHOP_PREFIX.length());
-        String[] parts = remainder.split("\\.");
-        if (parts.length == 2) {
-            String ownerId = parts[0];
-            String field = parts[1];
-            if ("name".equals(field) && value != null && !value.isBlank()) {
-                legacyShopNames.put(ownerId, value);
-                getOrCreateLoadedShop(ownerId, value);
-            } else if ("owner".equals(field)) {
-                String shopName = legacyShopNames.getOrDefault(ownerId, "Shop");
-                MutableShop shop = getOrCreateLoadedShop(ownerId, shopName);
-                if (shop != null) {
-                    shop.ownerName = value == null ? "" : value;
-                }
-            }
-            return;
-        }
-
-        if (parts.length < 3) {
-            return;
-        }
-        String ownerId = parts[0];
-        String nameKey = parts[1];
-        String field = parts[2];
-        String decodedName = decodeName(nameKey);
-        if (decodedName == null) {
-            return;
-        }
-
-        MutableShop shop = getOrCreateLoadedShop(ownerId, decodedName);
-        if (shop == null) {
-            return;
-        }
-        if ("owner".equals(field)) {
-            shop.ownerName = value == null ? "" : value;
-        } else if ("name".equals(field) && value != null && !value.isBlank()) {
-            shop.name = value;
-        } else if ("traderUuid".equals(field)) {
-            shop.traderUuid = value == null ? "" : value;
-        }
-    }
-
-    private void parseTradeProperty(String key, String value, Map<String, TradeBuilder> tradeBuilders, Map<String, String> legacyShopNames) {
-        String remainder = key.substring(TRADE_PREFIX.length());
-        String[] parts = remainder.split("\\.");
-        if (parts.length == 3) {
-            String ownerId = parts[0];
-            String tradeIdRaw = parts[1];
-            String field = parts[2];
-            String shopName = legacyShopNames.getOrDefault(ownerId, "Shop");
-            parseTradePropertyV2(ownerId, shopName, tradeIdRaw, field, value, tradeBuilders);
-            return;
-        }
-
-        if (parts.length < 4) {
-            return;
-        }
-        String ownerId = parts[0];
-        String nameKey = parts[1];
-        String tradeIdRaw = parts[2];
-        String field = parts[3];
-        String shopName = decodeName(nameKey);
-        if (shopName == null) {
-            return;
-        }
-
-        parseTradePropertyV2(ownerId, shopName, tradeIdRaw, field, value, tradeBuilders);
-    }
-
-    private void parseTradePropertyV2(
-        String ownerId,
-        String shopName,
-        String tradeIdRaw,
-        String field,
-        String value,
-        Map<String, TradeBuilder> tradeBuilders
-    ) {
-        getOrCreateLoadedShop(ownerId, shopName);
-        int tradeId;
-        try {
-            tradeId = Integer.parseInt(tradeIdRaw);
-        } catch (NumberFormatException ex) {
-            return;
-        }
-
-        String builderKey = ownerId + "." + normalizeName(shopName) + "." + tradeId;
-        TradeBuilder builder = tradeBuilders.computeIfAbsent(
-            builderKey,
-            keyName -> new TradeBuilder(ownerId, shopName, tradeId, builderKey)
-        );
-        if ("input".equals(field)) {
-            builder.inputItemId = value;
-        } else if ("inputQty".equals(field)) {
-            builder.inputQuantity = parseInt(value);
-        } else if ("output".equals(field)) {
-            builder.outputItemId = value;
-        } else if ("outputQty".equals(field)) {
-            builder.outputQuantity = parseInt(value);
-        }
-    }
-
-    private int parseInt(String value) {
-        if (value == null) {
-            return 0;
-        }
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException ex) {
-            return 0;
-        }
-    }
-
-    private void save() {
-        Properties props = new Properties();
-        for (Map<String, MutableShop> ownerShops : shopsByOwner.values()) {
-            for (MutableShop shop : ownerShops.values()) {
-                String nameKey = encodeName(shop.name);
-                props.setProperty(SHOP_PREFIX + shop.ownerId + "." + nameKey + ".name", shop.name);
-                props.setProperty(SHOP_PREFIX + shop.ownerId + "." + nameKey + ".owner", shop.ownerName);
-                if (shop.traderUuid != null && !shop.traderUuid.isBlank()) {
-                    props.setProperty(SHOP_PREFIX + shop.ownerId + "." + nameKey + ".traderUuid", shop.traderUuid);
-                }
-                for (Trade trade : shop.trades.values()) {
-                    String base = TRADE_PREFIX + shop.ownerId + "." + nameKey + "." + trade.id() + ".";
-                    props.setProperty(base + "input", trade.inputItemId());
-                    props.setProperty(base + "inputQty", String.valueOf(trade.inputQuantity()));
-                    props.setProperty(base + "output", trade.outputItemId());
-                    props.setProperty(base + "outputQty", String.valueOf(trade.outputQuantity()));
-                }
-            }
-        }
-
-        try {
-            Files.createDirectories(dataDirectory);
-            try (OutputStream outputStream = Files.newOutputStream(dataFile)) {
-                props.store(outputStream, "TaleShop registry");
-            }
-        } catch (IOException ignored) {
-        }
-    }
-
     private static String normalizeName(String name) {
         return name.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private static String encodeName(String name) {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(name.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static String decodeName(String encoded) {
-        try {
-            byte[] decoded = Base64.getUrlDecoder().decode(encoded);
-            return new String(decoded, StandardCharsets.UTF_8);
-        } catch (IllegalArgumentException ex) {
-            return null;
-        }
-    }
-
-    private MutableShop getOrCreateLoadedShop(String ownerId, String shopName) {
-        if (shopName == null || shopName.isBlank()) {
-            return null;
-        }
-        Map<String, MutableShop> ownerShops = shopsByOwner.computeIfAbsent(ownerId, id -> new TreeMap<>());
-        String normalized = normalizeName(shopName);
-        return ownerShops.computeIfAbsent(normalized, key -> new MutableShop(ownerId, "", shopName));
-    }
-
-    private MutableShop getLoadedShop(String ownerId, String shopName) {
-        Map<String, MutableShop> ownerShops = shopsByOwner.get(ownerId);
-        if (ownerShops == null) {
-            return null;
-        }
-        return ownerShops.get(normalizeName(shopName));
     }
 
     private static Object invokeFirst(Object target, String... methodNames) {
@@ -500,51 +647,13 @@ public class ShopRegistry {
         return null;
     }
 
-    private static final class MutableShop {
-        private final String ownerId;
-        private String ownerName;
-        private String name;
-        private String traderUuid = "";
-        private final Map<Integer, Trade> trades = new TreeMap<>();
-        private int nextTradeId = 1;
-
-        private MutableShop(String ownerId, String ownerName, String name) {
-            this.ownerId = ownerId;
-            this.ownerName = ownerName == null ? "" : ownerName;
-            this.name = name == null ? "" : name;
-        }
-
-        private Shop toShop() {
-            return new Shop(ownerId, ownerName, name, new ArrayList<>(trades.values()), traderUuid);
-        }
-    }
-
-    private static final class TradeBuilder {
-        private final String ownerId;
-        private final String shopName;
-        private final int tradeId;
-        private final String key;
-        private String inputItemId;
-        private int inputQuantity;
-        private String outputItemId;
-        private int outputQuantity;
-
-        private TradeBuilder(String ownerId, String shopName, int tradeId, String key) {
-            this.ownerId = ownerId;
-            this.shopName = shopName;
-            this.tradeId = tradeId;
-            this.key = key;
-        }
-
-        private boolean isComplete() {
-            return inputItemId != null && !inputItemId.isBlank()
-                && outputItemId != null && !outputItemId.isBlank()
-                && inputQuantity > 0
-                && outputQuantity > 0;
-        }
-
-        private Trade build() {
-            return new Trade(tradeId, inputItemId, inputQuantity, outputItemId, outputQuantity);
+    public synchronized void close() {
+        if (connection != null) {
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                System.err.println("Failed to close database connection: " + e.getMessage());
+            }
         }
     }
 }

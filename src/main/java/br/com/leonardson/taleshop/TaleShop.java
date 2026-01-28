@@ -72,5 +72,12 @@ public class TaleShop extends JavaPlugin {
             getIdentifier().toString(),
             List.of(TraderMessageInteraction.ROOT)
         );
+        
+        // Add shutdown hook to close database connection
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (shopRegistry != null) {
+                shopRegistry.close();
+            }
+        }));
     }
 }

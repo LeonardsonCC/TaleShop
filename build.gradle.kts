@@ -17,6 +17,7 @@ repositories {
 dependencies {
     compileOnly(libs.jetbrains.annotations)
     compileOnly(libs.jspecify)
+    implementation("org.xerial:sqlite-jdbc:3.47.1.0")
 }
 
 hytale {
