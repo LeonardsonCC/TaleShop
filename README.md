@@ -174,10 +174,41 @@ When a player buys an item:
 
 ## Permissions
 
-Currently, the plugin does not implement a permission system. All players can:
-- Create shops
-- Manage their own shops
-- Trade with any shop NPC
+The plugin uses Hytale's built-in permission system. The following permission node is required:
+
+- `taleshop.shop` - Required to use all `/shop` commands (create, rename, delete, list, spawn NPCs, manage trades)
+
+### Granting Permissions
+
+To grant the permission to a player, use the `/perm` command in-game:
+
+```
+/perm add <player_uuid> taleshop.shop
+```
+
+To grant the permission to a group:
+
+```
+/perm group add <group_name> taleshop.shop
+```
+
+To add a player to a group:
+
+```
+/perm user addgroup <player_uuid> <group_name>
+```
+
+### Permission Behavior
+
+- Players without the `taleshop.shop` permission cannot use any `/shop` commands
+- Players with the permission can:
+  - Create shops
+  - Manage their own shops
+  - Spawn and despawn trader NPCs for their shops
+  - Add, update, and delete trades in their shops
+- All players (with or without permission) can:
+  - Trade with any shop NPC
+  - Browse trade offers
 
 ## Data Storage
 
