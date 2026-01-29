@@ -1,23 +1,38 @@
 # TaleShop
 
-A Hytale server plugin that allows players to create custom trading shops with NPC traders and automatic inventory management through nearby storage containers.
+A Hytale server plugin that enables players to create and manage custom trading shops with NPC traders and automatic inventory management through nearby storage containers.
 
 ## Features
 
-- **Player-Owned Shops**: Create and manage your own trading shops
-- **NPC Traders**: Spawn interactive NPCs to represent your shop
-- **Automatic Inventory**: Shops automatically pull items from nearby chests/storage containers
-- **Custom Trades**: Define custom item exchanges with configurable quantities
-- **Storage Distance Control**: Configure how far storage containers can be from shop NPCs
-- **Multi-Shop Support**: Players can create multiple shops
-- **Persistent Data**: All shops and trades are saved across server restarts
+- **Player-Owned Shops**: Create and manage multiple custom trading shops
+- **NPC Traders**: Spawn interactive Klops Merchant NPCs to represent your shops
+- **Automatic Inventory Management**: Shops automatically pull items from nearby chests/storage containers
+- **Custom Trades**: Define item exchanges with configurable input/output items and quantities
+- **Storage Distance Control**: Configure search radius for storage containers
+- **Multi-Shop Support**: Create multiple shops per player with no hardcoded limit
+- **Persistent Data**: All shops and trades saved in SQLite database
+- **Interactive UI**: Full graphical interface for shop and trade management
+
+## Requirements
+
+- Hytale Server with NPC Plugin support
+- Java 25 or higher
+- Permission: `taleshop.shop.manage` (required for all shop management commands)
 
 ## Installation
 
-1. Download the latest `TaleShop-X.X.X.jar` from releases
-2. Place the JAR file in your Hytale server's `mods` directory
+1. Download the latest `TaleShop-1.0.0.jar` from releases
+2. Place the JAR file in your server's `mods/` directory
 3. Start or restart your server
-4. The plugin will automatically create a configuration file at `run/mods/Leonardson_TaleShop/TaleShopConfig.json`
+4. Configuration will be auto-generated at `run/mods/Leonardson_TaleShop/TaleShopConfig.json`
+
+## Building from Source
+
+```bash
+./gradlew build
+```
+
+The compiled JAR will be available at `build/libs/TaleShop-1.0.0.jar`
 
 ## Configuration
 
@@ -25,7 +40,7 @@ A Hytale server plugin that allows players to create custom trading shops with N
 
 **Location:** `run/mods/Leonardson_TaleShop/TaleShopConfig.json`
 
-**Format:**
+**Default Configuration:**
 ```json
 {
   "StorageDistanceMode": "FIXED",
@@ -38,17 +53,17 @@ A Hytale server plugin that allows players to create custom trading shops with N
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `StorageDistanceMode` | String | `"FIXED"` | Storage search mode: `"FIXED"` or `"WORKBENCH"` |
-| `FixedStorageDistance` | Integer | `2` | Radius in blocks to search for storage (min: 1) |
+| `FixedStorageDistance` | Integer | `2` | Radius in blocks to search for storage (minimum: 1) |
 
-#### Storage Distance Modes
+### Storage Distance Modes
 
-- **FIXED**: Uses the fixed distance defined in `FixedStorageDistance` (default: 2 blocks)
-  - Recommended for consistent behavior across all shops
+- **FIXED**: Uses the configured fixed distance (default: 2 blocks)
+  - Consistent behavior across all shops
   - Better for performance tuning
   
-- **WORKBENCH**: Uses the game's crafting workbench default distance settings
+- **WORKBENCH**: Uses the game's crafting workbench distance settings
   - Adapts to game configuration changes
-  - Useful if you want shops to match crafting bench behavior
+  - Matches crafting bench behavior
 
 ### Configuration Examples
 
@@ -68,278 +83,275 @@ A Hytale server plugin that allows players to create custom trading shops with N
 }
 ```
 
-For more configuration details, see [CONFIG.md](CONFIG.md).
+## Permissions
+
+All shop management commands require the following permission:
+
+```
+taleshop.shop.manage
+```
+
+Players without this permission cannot create or manage shops, but can still interact with shop NPCs to make trades.
 
 ## Commands
 
-All commands start with `/shop`. Most commands require you to specify a shop name.
+All commands use the base `/shop` command with various subcommands. **All commands require the `taleshop.shop.manage` permission.**
 
 ### Shop Management
 
-| Command | Description | Example |
-|---------|-------------|---------|
+| Command | Description | Usage |
+|---------|-------------|-------|
 | `/shop create <name>` | Create a new shop | `/shop create MyShop` |
 | `/shop rename <name> <newName>` | Rename an existing shop | `/shop rename MyShop BetterShop` |
-| `/shop delete <name>` | Delete a shop | `/shop delete MyShop` |
-| `/shop list` | List all your shops | `/shop list` |
-| `/shop get <name>` | Get information about a shop | `/shop get MyShop` |
+| `/shop delete <name>` | Delete a shop and all its trades | `/shop delete MyShop` |
+| `/shop list` | List all your shops with trade counts | `/shop list` |
+| `/shop get <name>` | Get detailed information about a shop | `/shop get MyShop` |
+| `/shop editor` | Open the graphical shop management UI | `/shop editor` |
 
 ### NPC Management
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/shop npc spawn <name>` | Spawn an NPC trader for your shop | `/shop npc spawn MyShop` |
-| `/shop npc despawn <name>` | Remove the NPC trader | `/shop npc despawn MyShop` |
+| Command | Description | Usage |
+|---------|-------------|-------|
+| `/shop npc spawn <name>` | Spawn an NPC trader for your shop at your location | `/shop npc spawn MyShop` |
+| `/shop npc despawn <name>` | Remove the NPC trader for your shop | `/shop npc despawn MyShop` |
 
 ### Trade Management
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/shop trade create <shopName> <inputItem> <inputQty> <outputItem> <outputQty>` | Create a new trade | `/shop trade create MyShop Ingredient_Gold 10 Tool_IronSword 1` |
+| Command | Description | Usage |
+|---------|-------------|-------|
+| `/shop trade create <shopName> <inputItem> <inputQty> <outputItem> <outputQty>` | Create a new trade in the shop (max 20 per shop) | `/shop trade create MyShop Ingredient_Gold 10 Tool_IronSword 1` |
 | `/shop trade list <shopName>` | List all trades in a shop | `/shop trade list MyShop` |
 | `/shop trade update <shopName> <tradeId> <inputItem> <inputQty> <outputItem> <outputQty>` | Update an existing trade | `/shop trade update MyShop 1 Ingredient_Gold 5 Tool_IronSword 1` |
-| `/shop trade delete <shopName> <tradeId>` | Delete a trade | `/shop trade delete MyShop 1` |
+| `/shop trade delete <shopName> <tradeId>` | Delete a trade from a shop | `/shop trade delete MyShop 1` |
 
-## Quick Start Guide
-
-### 1. Create a Shop
+### Command Hierarchy
 
 ```
-/shop create MyShop
+/shop
+├── create <name>
+├── rename <name> <newName>
+├── delete <name>
+├── list
+├── get <name>
+├── editor
+├── npc
+│   ├── spawn <name>
+│   └── despawn <name>
+└── trade
+    ├── create <shopName> <inputItem> <inputQty> <outputItem> <outputQty>
+    ├── list <shopName>
+    ├── update <shopName> <tradeId> <inputItem> <inputQty> <outputItem> <outputQty>
+    └── delete <shopName> <tradeId>
 ```
 
-### 2. Add Trades
+## Usage Guide
+
+### Creating Your First Shop
+
+1. **Create a shop:**
+   ```
+   /shop create MyFirstShop
+   ```
+
+2. **Add a trade to your shop:**
+   ```
+   /shop trade create MyFirstShop Ingredient_Gold 10 Tool_IronSword 1
+   ```
+   This creates a trade where players give 10 gold and receive 1 iron sword.
+
+3. **Spawn the NPC trader:**
+   ```
+   /shop npc spawn MyFirstShop
+   ```
+   The NPC will spawn 1.5 blocks in front of you.
+
+4. **Place storage containers nearby:**
+   - Place chests or other storage containers within 2 blocks of the NPC (default distance)
+   - Stock them with the items you're selling (e.g., iron swords)
+   - The shop will automatically pull items from these containers when players make trades
+
+5. **Done!** Players can now interact with the NPC to view and purchase from your shop.
+
+### Managing Multiple Shops
+
+You can create and manage multiple shops:
+
+```bash
+/shop create Weapons
+/shop create Potions
+/shop create Materials
+/shop list
+```
+
+### Using the Shop Editor UI
+
+For a more user-friendly experience, use the graphical shop editor:
 
 ```
-/shop trade create MyShop Ingredient_Gold 10 Tool_IronSword 1
-/shop trade create MyShop Ingredient_Diamond 5 Tool_DiamondSword 1
+/shop editor
 ```
 
-This creates trades where:
-- 10 Gold → 1 Iron Sword
-- 5 Diamonds → 1 Diamond Sword
+This opens an interactive UI where you can:
+- Browse all your shops
+- Create, edit, and delete shops
+- Manage trades visually
+- Configure shop settings
 
-### 3. Set Up Storage
+### Item ID Format
 
-Place chests within **2 blocks** (default) of where you want to spawn your NPC. Fill these chests with the items you're selling (output items).
+Items must use Hytale's internal item identifiers:
 
-For example:
-```
-     [Chest with Swords]
-            |
-         2 blocks
-            |
-      [NPC Location] ← 2 blocks → [Another Chest]
-```
+- **Ingredients:** `Ingredient_<Name>` (e.g., `Ingredient_Gold`, `Ingredient_Diamond`)
+- **Tools:** `Tool_<Name>` (e.g., `Tool_IronSword`, `Tool_DiamondPickaxe`)
+- **Blocks:** `Block_<Name>` (e.g., `Block_Stone`, `Block_Wood`)
 
-### 4. Spawn the NPC
-
-Stand where you want the shop NPC to appear and run:
-```
-/shop npc spawn MyShop
-```
-
-### 5. Done!
-
-Players can now right-click your NPC to view and execute trades. The shop will automatically pull items from nearby chests.
+Check your server's item registry for exact IDs.
 
 ## How It Works
 
-### Shop Storage System
+### Trade Execution Flow
 
-When a player interacts with your shop NPC:
+1. Player interacts with an NPC trader
+2. The plugin displays all available trades from the shop
+3. The plugin scans nearby storage containers (within configured distance)
+4. Available stock is calculated based on items in storage
+5. When a player makes a purchase:
+   - Plugin validates the player has the required input items
+   - Plugin verifies the shop has the output items in storage
+   - Input items are removed from the player's inventory
+   - Output items are transferred from storage to the player
+   - The transaction is completed instantly
 
-1. **Search**: The plugin searches for storage containers (chests) within the configured distance
-2. **Check Stock**: It counts available items in those containers
-3. **Display**: Shows players which trades have sufficient stock
-4. **Execute**: When a trade is made, items are removed from storage and added to the buyer's inventory
+### Data Storage
 
-### Trade Execution
+All data is stored in an SQLite database at `run/mods/Leonardson_TaleShop/shops.db`
 
-When a player buys an item:
+**Database Tables:**
+- **shops** - Stores shop information (owner, name, trader UUID)
+- **trades** - Stores trade definitions with foreign key relationships
 
-1. **Validation**: Checks if the player has enough input items
-2. **Stock Check**: Verifies the shop has enough output items in nearby storage
-3. **Transaction**: 
-   - Removes input items from player's inventory
-   - Adds output items to player's inventory
-   - Removes output items from shop's storage containers
-4. **Failure**: If insufficient funds or stock, the trade is cancelled
+The plugin automatically migrates from legacy `shops.properties` format if found.
 
-### Limitations
+## Limitations
 
-- Maximum **20 trades** per shop (hardcoded in `ShopRegistry.MAX_TRADES`)
-- Maximum **512 entities scanned** when searching for containers (hardcoded in `ShopBuyerPage.MAX_ENTITY_SCAN`)
-- Storage containers must be within configured distance (default: 2 blocks)
+- Maximum of **20 trades** per shop
+- Shop names are case-insensitive
+- Storage containers must be within the configured distance of the NPC
+- Minimum storage distance is 1 block
+- Maximum of **512 entities scanned** when searching for containers
 
-## Permissions
+## Examples
 
-The plugin uses Hytale's built-in permission system. The following permission node is required:
+### Example 1: Weapon Shop
 
-- `taleshop.shop` - Required to use all `/shop` commands (create, rename, delete, list, spawn NPCs, manage trades)
+```bash
+# Create the shop
+/shop create WeaponShop
 
-### Granting Permissions
+# Add various weapon trades
+/shop trade create WeaponShop Ingredient_Gold 20 Tool_IronSword 1
+/shop trade create WeaponShop Ingredient_Gold 30 Tool_IronAxe 1
+/shop trade create WeaponShop Ingredient_Diamond 10 Tool_DiamondSword 1
 
-To grant the permission to a player, use the `/perm` command in-game:
+# Spawn the trader
+/shop npc spawn WeaponShop
 
-```
-/perm add <player_uuid> taleshop.shop
-```
-
-To grant the permission to a group:
-
-```
-/perm group add <group_name> taleshop.shop
-```
-
-To add a player to a group:
-
-```
-/perm user addgroup <player_uuid> <group_name>
+# Place chests nearby and stock with weapons
 ```
 
-### Permission Behavior
+### Example 2: Resource Exchange
 
-- Players without the `taleshop.shop` permission cannot use any `/shop` commands
-- Players with the permission can:
-  - Create shops
-  - Manage their own shops
-  - Spawn and despawn trader NPCs for their shops
-  - Add, update, and delete trades in their shops
-- All players (with or without permission) can:
-  - Trade with any shop NPC
-  - Browse trade offers
+```bash
+# Create the shop
+/shop create ResourceExchange
 
-## Data Storage
+# Add resource conversion trades
+/shop trade create ResourceExchange Block_Stone 64 Ingredient_Gold 5
+/shop trade create ResourceExchange Block_Wood 32 Ingredient_Gold 3
+/shop trade create ResourceExchange Ingredient_Coal 16 Ingredient_Diamond 1
 
-All plugin data is stored in:
+# Spawn the trader
+/shop npc spawn ResourceExchange
 
-**Shops & Trades:** `run/mods/Leonardson_TaleShop/shops.properties`
-- Stores shop names, owners, and associated trades
-- Base64 encoded shop names for safe storage
-- Automatically saved after any modification
+# Place chests nearby and stock with resources
+```
 
-**Configuration:** `run/mods/Leonardson_TaleShop/TaleShopConfig.json`
-- JSON format
-- Can be edited while server is stopped
+### Example 3: Managing Shops
+
+```bash
+# List all your shops
+/shop list
+
+# Get details about a specific shop
+/shop get WeaponShop
+
+# Rename a shop
+/shop rename WeaponShop ArmorAndWeapons
+
+# List all trades in a shop
+/shop trade list ArmorAndWeapons
+
+# Update a trade
+/shop trade update ArmorAndWeapons 1 Ingredient_Gold 15 Tool_IronSword 1
+
+# Delete a specific trade
+/shop trade delete ArmorAndWeapons 2
+
+# Remove the NPC
+/shop npc despawn ArmorAndWeapons
+
+# Delete the entire shop
+/shop delete ArmorAndWeapons
+```
 
 ## Troubleshooting
 
-### Shop NPC won't spawn
+### NPCs not spawning
+- Ensure you have the `taleshop.shop.manage` permission
+- Check that the NPC plugin is loaded on your server
+- Verify there's enough space in front of you (1.5 blocks)
+- Make sure the shop exists first (`/shop list`)
 
-- Make sure the shop exists (`/shop list`)
-- Check that you're using the correct shop name
-- Try despawning first if it already exists
+### Trades not working
+- Ensure storage containers are within the configured distance (default: 2 blocks)
+- Check that the containers have the required output items
+- Verify item IDs are correct (case-sensitive)
+- Confirm the shop NPC is spawned
 
-### Trades showing "Out of Stock"
-
-- Ensure chests with output items are within the configured distance (default: 2 blocks) of the NPC
-- Verify the chests contain the correct items
+### Shops showing "Out of Stock"
+- Verify chests contain the correct items
 - Check the item IDs match exactly (case-sensitive)
+- Ensure chests are within configured distance of the NPC
 - Increase `FixedStorageDistance` in config if needed
 
 ### Configuration not loading
-
 - Check server logs for errors
 - Verify JSON syntax (use a JSON validator)
-- Ensure key names are capitalized (`StorageDistanceMode`, not `storageDistanceMode`)
+- Ensure key names are capitalized correctly (`StorageDistanceMode`)
 - Try deleting the config file and restarting to regenerate defaults
 
-### Trades not working
-
-- Verify item IDs are correct (use game's item IDs)
-- Check that quantities are positive integers
-- Ensure the shop has an NPC spawned
-- Confirm storage containers are close enough to the NPC
+### Database errors
+- Check file permissions on `run/mods/Leonardson_TaleShop/` directory
+- Look for errors in server logs
+- Ensure database file is not locked by another process
+- The plugin will auto-migrate from legacy `shops.properties` if found
 
 ## Performance Considerations
 
-### Storage Distance
-
-- **Smaller distances (1-3 blocks):** Better performance, scans fewer chests
-- **Larger distances (4-10 blocks):** More flexibility, but slower on servers with many shops
-
-### Number of Shops
-
-- Each shop scan searches for entities and blocks within the configured radius
-- More shops = more potential concurrent scans
-- Consider the trade-off between convenience and performance
-
-### Recommendations
-
-- Keep `FixedStorageDistance` at 2-3 blocks for optimal performance
-- Limit shops to essential locations
-- Use fewer, well-organized storage containers rather than many scattered chests
-
-## Building from Source
-
-### Prerequisites
-
-- JDK 21 or higher
-- Gradle (included via wrapper)
-
-### Build Steps
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd TaleShop
-
-# Build the plugin
-./gradlew build
-
-# Find the built JAR
-ls build/libs/TaleShop-*.jar
-```
-
-The compiled plugin will be in `build/libs/TaleShop-X.X.X.jar`.
-
-## Contributing
-
-Contributions are welcome! Please feel free to:
-
-- Report bugs by opening an issue
-- Suggest features or improvements
-- Submit pull requests
+- **Storage Distance**: Smaller distances (1-3 blocks) provide better performance
+- **Number of Shops**: More shops mean more potential concurrent scans
+- **Recommendations**: 
+  - Keep `FixedStorageDistance` at 2-3 blocks for optimal performance
+  - Use well-organized storage containers rather than many scattered chests
 
 ## License
 
-This project is open source. See LICENSE file for details.
+This project is licensed under the CC0 1.0 Universal (Public Domain) license. See [LICENSE.md](LICENSE.md) for details.
 
-## Credits
+## Author
 
-**Author:** LeonardsonCC  
-**Plugin:** TaleShop  
-**Description:** SHOPS!
+**LeonardsonCC**
 
 ## Support
 
-For issues, questions, or feature requests, please open an issue on the repository.
-
----
-
-## Technical Details
-
-### Architecture
-
-- **Main Class:** `br.com.leonardson.taleshop.TaleShop`
-- **Config System:** JSON-based with `PluginConfig` and `PluginConfigManager`
-- **Data Persistence:** Properties file with Base64 encoding
-- **UI System:** Custom UI pages for trade interactions
-- **Entity System:** Registered system for trader interactable components
-
-### Key Components
-
-- `ShopRegistry`: Manages shop creation, deletion, and persistence
-- `ShopBuyerPage`: Handles the shop UI and trade execution
-- `TraderNpc`: Manages NPC spawning and despawning
-- `PluginConfigManager`: Handles configuration loading and saving
-
-### Item IDs
-
-Item IDs must match the game's internal item identifiers. Common format:
-- `Ingredient_<Name>` (e.g., `Ingredient_Gold`, `Ingredient_Diamond`)
-- `Tool_<Name>` (e.g., `Tool_IronSword`, `Tool_DiamondSword`)
-- `Block_<Name>` (e.g., `Block_Stone`, `Block_Wood`)
-
-Check your server's item registry for exact IDs.
+For issues, questions, or contributions, please visit the project repository.
