@@ -1,0 +1,65 @@
+$C = "../Common.ui";
+
+Group {
+  LayoutMode: Center;
+  Anchor: (Height: 32);
+  Padding: (Bottom: 2);
+
+  ItemGrid #TradeInputSlot {
+    SlotsPerRow: 1;
+    RenderItemQualityBackground: true;
+    AreItemsDraggable: false;
+    Style: (
+      SlotSize: 28,
+      SlotIconSize: 28,
+      SlotSpacing: 0,
+      SlotBackground: "../Common/BlockSelectorSlotBackground.png"
+    );
+    Background: (TexturePath: "../Common/ContainerPanelPatch.png", Border: 4);
+    Padding: (Full: 2);
+    Anchor: (Width: 36, Height: 30);
+  }
+
+  Label #TradeInputQty {
+    Text: "";
+    Style: (...$C.@DefaultLabelStyle, RenderBold: true, HorizontalAlignment: Center);
+    Anchor: (Width: 44, Height: 24, Left: 6);
+  }
+
+  Label #TradeArrow {
+    Text: "->";
+    Style: (...$C.@DefaultLabelStyle, RenderBold: true, HorizontalAlignment: Center);
+    Anchor: (Width: 24, Height: 24, Left: 4);
+  }
+
+  ItemGrid #TradeOutputSlot {
+    SlotsPerRow: 1;
+    RenderItemQualityBackground: true;
+    AreItemsDraggable: false;
+    Style: (
+      SlotSize: 28,
+      SlotIconSize: 28,
+      SlotSpacing: 0,
+      SlotBackground: "../Common/BlockSelectorSlotBackground.png"
+    );
+    Background: (TexturePath: "../Common/ContainerPanelPatch.png", Border: 4);
+    Padding: (Full: 2);
+    Anchor: (Width: 36, Height: 30);
+  }
+
+  Label #TradeOutputQty {
+    Text: "";
+    Style: (...$C.@DefaultLabelStyle, RenderBold: true, HorizontalAlignment: Center);
+    Anchor: (Width: 44, Height: 24, Left: 6);
+  }
+
+  $C.@TextButton #TradeEditButton {
+    Text: "Edit";
+    Anchor: (Width: 150, Height: 24, Left: 8);
+  }
+
+  $C.@CancelTextButton #TradeDeleteButton {
+    Text: "Delete";
+    Anchor: (Width: 150, Height: 24, Left: 6);
+  }
+}

@@ -1,0 +1,79 @@
+$C = "../Common.ui";
+
+$C.@Container {
+  Anchor: (Width: 400, Height: 240);
+
+  #Title {
+    Group {
+      LayoutMode: Left;
+
+      $C.@Title #TitleLabel {
+        @Text = "Confirm Deletion";
+      }
+    }
+  }
+
+  #Content {
+    LayoutMode: Center;
+
+    Group {
+      LayoutMode: Top;
+      Anchor: (Width: 360, Height: 160);
+
+      Group #MessageSection {
+        LayoutMode: Top;
+        Anchor: (Height: 80);
+
+        Label #MessageLine1 {
+          Text: "Are you sure you want to delete this shop?";
+          Style: (...$C.@DefaultLabelStyle, HorizontalAlignment: Center);
+          Anchor: (Height: 24);
+        }
+
+        Group {
+          Anchor: (Height: 8);
+        }
+
+        Label #ShopNameLabel {
+          Text: "";
+          Style: (...$C.@DefaultLabelStyle, RenderBold: true, HorizontalAlignment: Center);
+          Anchor: (Height: 28);
+        }
+
+        Group {
+          Anchor: (Height: 8);
+        }
+
+        Label #MessageLine2 {
+          Text: "This action cannot be undone.";
+          Style: (...$C.@DefaultLabelStyle, HorizontalAlignment: Center);
+          Anchor: (Height: 24);
+        }
+      }
+
+      Group #ButtonSection {
+        LayoutMode: Center;
+        Anchor: (Top: 16, Height: 48);
+
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 48);
+
+          $C.@TextButton #CancelButton {
+            Text: "Cancel";
+            Anchor: (Width: 140, Height: 40);
+          }
+
+          Group {
+            Anchor: (Width: 16);
+          }
+
+          $C.@CancelTextButton #ConfirmButton {
+            Text: "Delete Shop";
+            Anchor: (Width: 140, Height: 40);
+          }
+        }
+      }
+    }
+  }
+}

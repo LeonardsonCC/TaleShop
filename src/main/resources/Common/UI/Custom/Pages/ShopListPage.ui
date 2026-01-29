@@ -1,0 +1,45 @@
+$C = "../Common.ui";
+
+$C.@Container {
+  Anchor: (Width: 900, Height: 580);
+
+  #Title {
+    Group {
+      LayoutMode: Left;
+
+      $C.@Title #TitleLabel {
+        @Text = "Shop Manager";
+      }
+    }
+  }
+
+  #Content {
+    LayoutMode: Center;
+
+    Group {
+      LayoutMode: Top;
+      Anchor: (Width: 900, Height: 460);
+
+      Group #ShopRowsContainer {
+        FlexWeight: 1;
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+        Anchor: (Height: 400);
+
+        Group #ShopRows {
+          LayoutMode: Top;
+        }
+      }
+
+      Group #ActionButtons {
+        LayoutMode: Center;
+        Anchor: (Top: 8, Height: 48);
+
+        $C.@TextButton #CreateShopButton {
+          Text: "Create New Shop";
+          Anchor: (Width: 220, Height: 40);
+        }
+      }
+    }
+  }
+}

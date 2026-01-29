@@ -1,0 +1,157 @@
+$C = "../Common.ui";
+
+@SlotSize = 54;
+@SlotSpacing = 3;
+@GridPadding = 10;
+@SlotsPerRow = 9;
+@SelectedRedOverlay = PatchStyle(TexturePath: "../Common/BlockSelectorSlotBackground.png", Border: 4, Color: #ff1a1a(1));
+@SelectedGreenOverlay = PatchStyle(TexturePath: "../Common/BlockSelectorSlotBackground.png", Border: 4, Color: #00ff5a(1));
+
+$C.@Container {
+  Anchor: (Horizontal: 0, Vertical: 0, Width: 620, Height: 860);
+
+  #Title {
+    Group {
+      LayoutMode: Left;
+
+      $C.@Title #TitleLabel {
+        @Text = "Inventory";
+      }
+    }
+  }
+
+  #Content {
+    LayoutMode: Top;
+
+    Group #GridGroup {
+      LayoutMode: Center;
+      Anchor: (Height: 600);
+
+      ItemGrid #InventoryGrid {
+        SlotsPerRow: @SlotsPerRow;
+        RenderItemQualityBackground: true;
+        AreItemsDraggable: false;
+        Style: (
+          SlotSize: @SlotSize,
+          SlotIconSize: @SlotSize,
+          SlotSpacing: @SlotSpacing,
+          SlotBackground: "../Common/BlockSelectorSlotBackground.png"
+        );
+        Background: (TexturePath: "../Common/ContainerPanelPatch.png", Border: 4);
+        Padding: (Full: @GridPadding);
+      }
+    }
+
+    Group #SelectionGroup {
+      LayoutMode: Top;
+      Anchor: (Top: 8, Height: 150);
+
+      Label #InputLabel {
+        Text: "Input";
+        Style: (...$C.@DefaultLabelStyle, RenderBold: true, HorizontalAlignment: Center);
+        Anchor: (Height: 18);
+      }
+
+      Group {
+        LayoutMode: Center;
+        Anchor: (Height: 48);
+
+        Group {
+          LayoutMode: Left;
+
+          ItemGrid #InputSlot {
+            SlotsPerRow: 1;
+            RenderItemQualityBackground: true;
+            AreItemsDraggable: false;
+            Style: (
+              SlotSize: 44,
+              SlotIconSize: 44,
+              SlotSpacing: 0,
+              SlotBackground: "../Common/BlockSelectorSlotBackground.png"
+            );
+            Background: (TexturePath: "../Common/ContainerPanelPatch.png", Border: 4);
+            Padding: (Full: 4);
+          }
+
+          $C.@NumberField #InputQuantityField {
+            @Anchor = (Width: 84, Height: 40, Left: 10);
+            Format: (
+              MaxDecimalPlaces: 0,
+              Step: 1,
+              MinValue: 0,
+              MaxValue: 9999
+            );
+            Value: 0;
+          }
+        }
+      }
+
+      Label #OutputLabel {
+        Text: "Output";
+        Style: (...$C.@DefaultLabelStyle, RenderBold: true, HorizontalAlignment: Center);
+        Anchor: (Top: 6, Height: 18);
+      }
+
+      Group {
+        LayoutMode: Center;
+        Anchor: (Height: 48);
+
+        Group {
+          LayoutMode: Left;
+
+          ItemGrid #OutputSlot {
+            SlotsPerRow: 1;
+            RenderItemQualityBackground: true;
+            AreItemsDraggable: false;
+            Style: (
+              SlotSize: 44,
+              SlotIconSize: 44,
+              SlotSpacing: 0,
+              SlotBackground: "../Common/BlockSelectorSlotBackground.png"
+            );
+            Background: (TexturePath: "../Common/ContainerPanelPatch.png", Border: 4);
+            Padding: (Full: 4);
+          }
+
+          $C.@NumberField #OutputQuantityField {
+            @Anchor = (Width: 84, Height: 40, Left: 10);
+            Format: (
+              MaxDecimalPlaces: 0,
+              Step: 1,
+              MinValue: 0,
+              MaxValue: 9999
+            );
+            Value: 0;
+          }
+        }
+      }
+
+    }
+
+    Group #ActionButtons {
+      LayoutMode: Center;
+      Anchor: (Top: 8, Height: 48);
+
+      Group {
+        LayoutMode: Left;
+        Anchor: (Height: 48);
+
+        $C.@CancelTextButton #CancelButton {
+          Text: "Cancel";
+          Anchor: (Width: 140, Height: 40);
+        }
+
+        Group {
+          Anchor: (Width: 12);
+        }
+
+        $C.@TextButton #ConfirmButton {
+          Text: "Confirm";
+          Anchor: (Width: 140, Height: 40);
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

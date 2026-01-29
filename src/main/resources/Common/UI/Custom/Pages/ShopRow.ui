@@ -1,0 +1,34 @@
+$C = "../Common.ui";
+
+Group {
+  LayoutMode: Center;
+  Anchor: (Height: 38);
+  Padding: (Bottom: 2);
+
+  Label #ShopName {
+    Text: "";
+    Style: (...$C.@DefaultLabelStyle, RenderBold: true, HorizontalAlignment: Center);
+    Anchor: (Width: 200, Height: 24);
+  }
+
+  Label #ShopTrades {
+    Text: "";
+    Style: (...$C.@DefaultLabelStyle, HorizontalAlignment: Center);
+    Anchor: (Width: 80, Height: 24, Left: 8);
+  }
+
+  $C.@TextButton #ShopEditButton {
+    Text: "Rename";
+    Anchor: (Width: 150, Height: 28, Left: 8);
+  }
+
+  $C.@CancelTextButton #ShopDeleteButton {
+    Text: "Delete";
+    Anchor: (Width: 120, Height: 28, Left: 6);
+  }
+
+  $C.@TextButton #ShopNpcButton {
+    Text: "Spawn NPC";
+    Anchor: (Width: 180, Height: 28, Left: 6);
+  }
+}

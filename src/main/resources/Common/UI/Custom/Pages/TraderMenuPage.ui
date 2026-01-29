@@ -1,0 +1,125 @@
+$C = "../Common.ui";
+
+$C.@Container {
+  Anchor: (Width: 600, Height: 480);
+
+  #Title {
+    Group {
+      LayoutMode: Center;
+      $C.@Title #TitleLabel { @Text = "Shop Manager"; }
+    }
+  }
+
+  #Content {
+    LayoutMode: Center;
+
+    Group {
+      LayoutMode: Top;
+      Anchor: (Width: 520, Height: 400);
+
+      // Shop Actions Section
+      Group #ShopActionsSection {
+        LayoutMode: Center;
+        Anchor: (Height: 140);
+        Padding: (Bottom: 12);
+
+        Group {
+          LayoutMode: Top;
+          Anchor: (Width: 500);
+
+          Label {
+            Text: "Shop";
+            Style: (...$C.@DefaultLabelStyle, RenderBold: true, HorizontalAlignment: Center);
+            Anchor: (Height: 28);
+          }
+
+          Group {
+            Anchor: (Height: 8);
+          }
+
+          Group {
+            LayoutMode: Center;
+            Anchor: (Height: 44);
+            Padding: (Bottom: 6);
+
+            Group {
+              LayoutMode: Left;
+
+              $C.@TextButton #PreviewShopButton {
+                Text: "Preview Shop";
+                Anchor: (Width: 240, Height: 40);
+              }
+
+              Group {
+                Anchor: (Width: 12);
+              }
+
+              $C.@TextButton #EditTradesButton {
+                Text: "Edit Trades";
+                Anchor: (Width: 240, Height: 40);
+              }
+            }
+          }
+        }
+      }
+
+      // Trader Management Section
+      Group #TraderManagementSection {
+        LayoutMode: Center;
+        Anchor: (Height: 180);
+        Padding: (Bottom: 12);
+
+        Group {
+          LayoutMode: Top;
+          Anchor: (Width: 500);
+
+          Label {
+            Text: "Trader";
+            Style: (...$C.@DefaultLabelStyle, RenderBold: true, HorizontalAlignment: Center);
+            Anchor: (Height: 28);
+          }
+
+          Group {
+            Anchor: (Height: 8);
+          }
+
+          // First row of trader buttons
+          Group {
+            LayoutMode: Center;
+            Anchor: (Height: 44);
+            Padding: (Bottom: 6);
+
+            Group {
+              LayoutMode: Left;
+
+              $C.@TextButton #RenameTraderButton {
+                Text: "Rename Trader";
+                Anchor: (Width: 240, Height: 40);
+              }
+
+              Group {
+                Anchor: (Width: 12);
+              }
+
+              $C.@TextButton #DespawnTraderButton {
+                Text: "Despawn Trader";
+                Anchor: (Width: 240, Height: 40);
+              }
+            }
+          }
+
+          // Second row with delete button centered
+          Group {
+            LayoutMode: Center;
+            Anchor: (Height: 44);
+
+            $C.@CancelTextButton #DeleteTraderButton {
+              Text: "Delete Trader";
+              Anchor: (Width: 240, Height: 40);
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,81 @@
+$C = "../Common.ui";
+
+$C.@Container {
+  Anchor: (Width: 500, Height: 300);
+
+  #Title {
+    Group {
+      LayoutMode: Left;
+
+      $C.@Title #TitleLabel {
+        @Text = "Shop Editor";
+      }
+    }
+  }
+
+  #Content {
+    LayoutMode: Center;
+
+    Group {
+      LayoutMode: Top;
+      Anchor: (Width: 460, Height: 200);
+
+      Group #InputSection {
+        LayoutMode: Top;
+        Anchor: (Height: 120);
+
+        Label #InputLabel {
+          Text: "Shop Name:";
+          Style: (...$C.@DefaultLabelStyle, RenderBold: true);
+          Anchor: (Height: 24);
+        }
+
+        Group {
+          Anchor: (Height: 8);
+        }
+
+        TextField #ShopNameInput {
+          Style: $C.@DefaultInputFieldStyle;
+          Background: $C.@InputBoxBackground;
+          Anchor: (Width: 460, Height: 36);
+          Padding: (Full: 8);
+        }
+
+        Group {
+          Anchor: (Height: 8);
+        }
+
+        Label #ErrorLabel {
+          Text: "";
+          Style: (...$C.@DefaultLabelStyle);
+          Anchor: (Height: 24);
+          Visible: false;
+        }
+      }
+
+      Group #ButtonSection {
+        LayoutMode: Center;
+        Anchor: (Top: 16, Height: 48);
+
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 48);
+
+          $C.@CancelTextButton #CancelButton {
+            Text: "Cancel";
+            Anchor: (Width: 140, Height: 40);
+          }
+
+          Group {
+            Anchor: (Width: 16);
+          }
+
+          $C.@TextButton #SaveButton {
+            Text: "Save";
+            Anchor: (Width: 140, Height: 40);
+          }
+        }
+      }
+    }
+  }
+}

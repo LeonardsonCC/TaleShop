@@ -1,0 +1,59 @@
+$C = "../Common.ui";
+
+$C.@Container {
+  Anchor: (Width: 740, Height: 580);
+
+  #Title {
+    Group {
+      LayoutMode: Left;
+
+      $C.@Title #TitleLabel {
+        @Text = "Trades";
+      }
+    }
+  }
+
+  #Content {
+    LayoutMode: Center;
+
+    Group {
+      LayoutMode: Top;
+      Anchor: (Width: 740, Height: 460);
+
+      Group #TradeRowsContainer {
+        FlexWeight: 1;
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+        Anchor: (Height: 420);
+
+        Group #TradeRows {
+          LayoutMode: Top;
+        }
+      }
+
+      Group #ActionButtons {
+        LayoutMode: Center;
+        Anchor: (Top: 8, Height: 48);
+
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 48);
+
+          $C.@TextButton #BackButton {
+            Text: "Back";
+            Anchor: (Width: 120, Height: 40);
+          }
+
+          Group {
+            Anchor: (Width: 12);
+          }
+
+          $C.@TextButton #AddTradeButton {
+            Text: "Add Trade";
+            Anchor: (Width: 160, Height: 40);
+          }
+        }
+      }
+    }
+  }
+}
