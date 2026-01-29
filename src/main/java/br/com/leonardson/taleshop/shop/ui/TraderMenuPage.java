@@ -1,5 +1,10 @@
 package br.com.leonardson.taleshop.shop.ui;
 
+import br.com.leonardson.taleshop.TaleShop;
+import br.com.leonardson.taleshop.player.PlayerIdentity;
+import br.com.leonardson.taleshop.shop.Shop;
+import br.com.leonardson.taleshop.shop.ShopRegistry;
+import br.com.leonardson.taleshop.shop.TraderNpc;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.codec.Codec;
@@ -16,7 +21,6 @@ import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import javax.annotation.Nonnull;
-import br.com.leonardson.taleshop.player.PlayerIdentity;
 
 public class TraderMenuPage extends InteractiveCustomUIPage<TraderMenuPage.MenuEventData> {
     private static final String PAGE_PATH = "Pages/TraderMenuPage.ui";
@@ -37,6 +41,8 @@ public class TraderMenuPage extends InteractiveCustomUIPage<TraderMenuPage.MenuE
         @Nonnull Store<EntityStore> store
     ) {
         commandBuilder.append(PAGE_PATH);
+        
+        // Bind shop action buttons
         eventBuilder.addEventBinding(
             CustomUIEventBindingType.Activating,
             "#PreviewShopButton",
@@ -45,8 +51,28 @@ public class TraderMenuPage extends InteractiveCustomUIPage<TraderMenuPage.MenuE
         );
         eventBuilder.addEventBinding(
             CustomUIEventBindingType.Activating,
-            "#EditButton",
+            "#EditTradesButton",
             EventData.of("Action", "Edit"),
+            false
+        );
+        
+        // Bind trader management buttons
+        eventBuilder.addEventBinding(
+            CustomUIEventBindingType.Activating,
+            "#RenameTraderButton",
+            EventData.of("Action", "RenameTrader"),
+            false
+        );
+        eventBuilder.addEventBinding(
+            CustomUIEventBindingType.Activating,
+            "#DespawnTraderButton",
+            EventData.of("Action", "DespawnTrader"),
+            false
+        );
+        eventBuilder.addEventBinding(
+            CustomUIEventBindingType.Activating,
+            "#DeleteTraderButton",
+            EventData.of("Action", "DeleteTrader"),
             false
         );
 
@@ -78,7 +104,67 @@ public class TraderMenuPage extends InteractiveCustomUIPage<TraderMenuPage.MenuE
 
         if ("Edit".equals(data.action)) {
             player.getPageManager().openCustomPage(ref, store, new TradeListPage(playerRef, ownerId, shopName));
+            return;
         }
+
+        if ("RenameTrader".equals(data.action)) {
+            player.getPageManager().openCustomPage(ref, store, new ShopEditorPage(playerRef, ownerId, shopName, true));
+            return;
+        }
+
+        if ("DespawnTrader".equals(data.action)) {
+            handleDespawnTrader(ref, store, player, playerRef);
+            return;
+        }
+
+        if ("DeleteTrader".equals(data.action)) {
+            player.getPageManager().openCustomPage(ref, store, new ShopDeleteConfirmationPage(playerRef, ownerId, shopName, true));
+            return;
+        }
+    }
+
+    private void handleDespawnTrader(
+        @Nonnull Ref<EntityStore> ref,
+        @Nonnull Store<EntityStore> store,
+        @Nonnull Player player,
+        @Nonnull PlayerRef playerRef
+    ) {
+        ShopRegistry registry = resolveRegistry();
+        if (registry == null) {
+            player.sendMessage(Message.raw("Shop registry not available."));
+            return;
+        }
+
+        Shop shop = registry.getShop(ownerId, shopName);
+        if (shop == null) {
+            player.sendMessage(Message.raw("Shop not found."));
+            return;
+        }
+
+        String traderUuid = shop.traderUuid();
+        if (traderUuid == null || traderUuid.isBlank()) {
+            player.sendMessage(Message.raw("No trader to despawn."));
+            return;
+        }
+
+        boolean despawned = TraderNpc.despawnByUuid(store, traderUuid);
+        if (despawned) {
+            registry.clearTraderUuid(ownerId, shopName);
+            player.sendMessage(Message.raw("Trader despawned successfully."));
+        } else {
+            player.sendMessage(Message.raw("Failed to despawn trader."));
+        }
+        
+        // Redirect to shop list
+        player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId));
+    }
+
+    private ShopRegistry resolveRegistry() {
+        TaleShop plugin = TaleShop.getInstance();
+        if (plugin == null) {
+            return null;
+        }
+        return plugin.getShopRegistry();
     }
 
     public static class MenuEventData {

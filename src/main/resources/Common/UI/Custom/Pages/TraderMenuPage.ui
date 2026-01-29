@@ -1,11 +1,11 @@
 $C = "../Common.ui";
 
 $C.@Container {
-  Anchor: (Width: 900, Height: 580);
+  Anchor: (Width: 600, Height: 480);
 
   #Title {
     Group {
-      LayoutMode: Left;
+      LayoutMode: Center;
       $C.@Title #TitleLabel { @Text = "Shop Manager"; }
     }
   }
@@ -15,72 +15,108 @@ $C.@Container {
 
     Group {
       LayoutMode: Top;
-      Anchor: (Width: 900, Height: 460);
+      Anchor: (Width: 520, Height: 400);
 
-      Group #ShopRows {
-        LayoutMode: Top;
-        Anchor: (Height: 400);
+      // Shop Actions Section
+      Group #ShopActionsSection {
+        LayoutMode: Center;
+        Anchor: (Height: 140);
+        Padding: (Bottom: 12);
 
-        Group #ShopRowTemplate {
-          Visible: false;           // important
-          LayoutMode: Center;
-          Anchor: (Height: 38);
+        Group {
+          LayoutMode: Top;
+          Anchor: (Width: 500);
 
-          Label #ShopName {
-            Text: "";
+          Label {
+            Text: "Shop";
             Style: (...$C.@DefaultLabelStyle, RenderBold: true, HorizontalAlignment: Center);
-            Anchor: (Width: 200, Height: 24);
+            Anchor: (Height: 28);
           }
 
-          Label #ShopTrades {
-            Text: "";
-            Style: (...$C.@DefaultLabelStyle, HorizontalAlignment: Center);
-            Anchor: (Width: 80, Height: 24, Left: 8);
+          Group {
+            Anchor: (Height: 8);
           }
 
-          Label #ShopNpcStatus {
-            Text: "";
-            Style: (...$C.@DefaultLabelStyle, HorizontalAlignment: Center);
-            Anchor: (Width: 60, Height: 24, Left: 8);
-          }
+          Group {
+            LayoutMode: Center;
+            Anchor: (Height: 44);
+            Padding: (Bottom: 6);
 
-          $C.@TextButton #ShopRenameButton {
-            Text: "Rename";
-            Anchor: (Width: 150, Height: 28, Left: 8);
-          }
+            Group {
+              LayoutMode: Left;
 
-          $C.@CancelTextButton #ShopDeleteButton {
-            Text: "Delete";
-            Anchor: (Width: 120, Height: 28, Left: 6);
-          }
+              $C.@TextButton #PreviewShopButton {
+                Text: "Preview Shop";
+                Anchor: (Width: 240, Height: 40);
+              }
 
-          $C.@TextButton #ShopNpcButton {
-            Text: "Spawn NPC";
-            Anchor: (Width: 180, Height: 28, Left: 6);
+              Group {
+                Anchor: (Width: 12);
+              }
+
+              $C.@TextButton #EditTradesButton {
+                Text: "Edit Trades";
+                Anchor: (Width: 240, Height: 40);
+              }
+            }
           }
         }
       }
 
-      Group #ActionButtons {
+      // Trader Management Section
+      Group #TraderManagementSection {
         LayoutMode: Center;
-        Anchor: (Top: 8, Height: 48);
+        Anchor: (Height: 180);
+        Padding: (Bottom: 12);
 
         Group {
-          LayoutMode: Left;
-          Anchor: (Height: 48);
+          LayoutMode: Top;
+          Anchor: (Width: 500);
 
-          $C.@TextButton #PreviewShopButton {
-            Text: "Preview Shop";
-            Anchor: (Width: 200, Height: 40);
+          Label {
+            Text: "Trader";
+            Style: (...$C.@DefaultLabelStyle, RenderBold: true, HorizontalAlignment: Center);
+            Anchor: (Height: 28);
           }
 
           Group {
-            Anchor: (Width: 12);
+            Anchor: (Height: 8);
           }
 
-          $C.@TextButton #EditButton {
-            Text: "Edit Trades";
-            Anchor: (Width: 200, Height: 40);
+          // First row of trader buttons
+          Group {
+            LayoutMode: Center;
+            Anchor: (Height: 44);
+            Padding: (Bottom: 6);
+
+            Group {
+              LayoutMode: Left;
+
+              $C.@TextButton #RenameTraderButton {
+                Text: "Rename Trader";
+                Anchor: (Width: 240, Height: 40);
+              }
+
+              Group {
+                Anchor: (Width: 12);
+              }
+
+              $C.@TextButton #DespawnTraderButton {
+                Text: "Despawn Trader";
+                Anchor: (Width: 240, Height: 40);
+              }
+            }
+          }
+
+          // Second row with delete button centered
+          Group {
+            LayoutMode: Center;
+            Anchor: (Height: 44);
+
+            $C.@CancelTextButton #DeleteTraderButton {
+              Text: "Delete Trader";
+              Anchor: (Width: 240, Height: 40);
+            }
           }
         }
       }

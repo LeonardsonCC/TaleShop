@@ -25,11 +25,17 @@ public class ShopDeleteConfirmationPage extends InteractiveCustomUIPage<ShopDele
     
     private final String ownerId;
     private final String shopName;
+    private final boolean fromTraderMenu; // If true, return to trader menu on cancel
 
     public ShopDeleteConfirmationPage(@Nonnull PlayerRef playerRef, @Nonnull String ownerId, @Nonnull String shopName) {
+        this(playerRef, ownerId, shopName, false);
+    }
+
+    public ShopDeleteConfirmationPage(@Nonnull PlayerRef playerRef, @Nonnull String ownerId, @Nonnull String shopName, boolean fromTraderMenu) {
         super(playerRef, CustomPageLifetime.CanDismiss, DeleteConfirmEventData.CODEC);
         this.ownerId = ownerId;
         this.shopName = shopName;
+        this.fromTraderMenu = fromTraderMenu;
     }
 
     @Override
@@ -72,7 +78,12 @@ public class ShopDeleteConfirmationPage extends InteractiveCustomUIPage<ShopDele
         }
 
         if ("Cancel".equals(data.action)) {
-            player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId));
+            if (fromTraderMenu) {
+                // Return to trader menu
+                player.getPageManager().openCustomPage(ref, store, new TraderMenuPage(playerRef, ownerId, shopName));
+            } else {
+                player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId));
+            }
             return;
         }
 
@@ -104,7 +115,7 @@ public class ShopDeleteConfirmationPage extends InteractiveCustomUIPage<ShopDele
             registry.deleteShop(ownerId, shopName);
             player.sendMessage(Message.raw("Shop '" + shopName + "' has been deleted."));
             
-            // Return to shop list
+            // Always redirect to shop list after delete
             player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId));
         } catch (IllegalArgumentException ex) {
             player.sendMessage(Message.raw("Error: " + ex.getMessage()));

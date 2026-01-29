@@ -28,12 +28,18 @@ public class ShopEditorPage extends InteractiveCustomUIPage<ShopEditorPage.ShopE
     private final String ownerId;
     private final String currentShopName; // null for create mode, non-null for edit mode
     private final boolean isEditMode;
+    private final boolean returnToTrader; // If true, return to TraderMenuPage after save
 
     public ShopEditorPage(@Nonnull PlayerRef playerRef, @Nonnull String ownerId, @Nullable String currentShopName) {
+        this(playerRef, ownerId, currentShopName, false);
+    }
+
+    public ShopEditorPage(@Nonnull PlayerRef playerRef, @Nonnull String ownerId, @Nullable String currentShopName, boolean returnToTrader) {
         super(playerRef, CustomPageLifetime.CanDismiss, ShopEditorEventData.CODEC);
         this.ownerId = ownerId;
         this.currentShopName = currentShopName;
         this.isEditMode = currentShopName != null && !currentShopName.isBlank();
+        this.returnToTrader = returnToTrader;
     }
 
     @Override
@@ -87,7 +93,12 @@ public class ShopEditorPage extends InteractiveCustomUIPage<ShopEditorPage.ShopE
         }
 
         if ("Cancel".equals(data.action)) {
-            player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId));
+            if (returnToTrader && isEditMode) {
+                // Return to trader menu if we came from there
+                player.getPageManager().openCustomPage(ref, store, new TraderMenuPage(playerRef, ownerId, currentShopName));
+            } else {
+                player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId));
+            }
             return;
         }
 
@@ -128,8 +139,14 @@ public class ShopEditorPage extends InteractiveCustomUIPage<ShopEditorPage.ShopE
                 player.sendMessage(Message.raw("Shop '" + shop.name() + "' created successfully."));
             }
             
-            // Return to shop list
-            player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId));
+            // Return to appropriate page
+            if (returnToTrader && isEditMode) {
+                // Return to trader menu with the new shop name
+                player.getPageManager().openCustomPage(ref, store, new TraderMenuPage(playerRef, ownerId, trimmedName));
+            } else {
+                // Return to shop list
+                player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId));
+            }
         } catch (IllegalArgumentException ex) {
             player.sendMessage(Message.raw("Error: " + ex.getMessage()));
             ex.printStackTrace();
