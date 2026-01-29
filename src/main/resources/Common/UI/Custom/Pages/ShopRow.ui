@@ -17,12 +17,6 @@ Group {
     Anchor: (Width: 80, Height: 24, Left: 8);
   }
 
-  Label #ShopNpcStatus {
-    Text: "";
-    Style: (...$C.@DefaultLabelStyle, HorizontalAlignment: Center);
-    Anchor: (Width: 60, Height: 24, Left: 8);
-  }
-
   $C.@TextButton #ShopEditButton {
     Text: "Rename";
     Anchor: (Width: 150, Height: 28, Left: 8);
