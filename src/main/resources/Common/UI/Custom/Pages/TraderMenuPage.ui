@@ -1,34 +1,89 @@
 $C = "../Common.ui";
 
 $C.@Container {
-  Anchor: (Width: 740, Height: 480);
+  Anchor: (Width: 900, Height: 580);
 
   #Title {
     Group {
       LayoutMode: Left;
-
-      $C.@Title #TitleLabel {
-        @Text = "Trader";
-      }
+      $C.@Title #TitleLabel { @Text = "Shop Manager"; }
     }
   }
 
-  Group #Buttons {
-    LayoutMode: Top;
-    Anchor: (Top: 50);
-
-    $C.@TextButton #PreviewShopButton {
-      Text: "Preview Shop";
-      Anchor: (Width: 220, Height: 40);
-    }
+  #Content {
+    LayoutMode: Center;
 
     Group {
-      Anchor: (Width: 16);
-    }
+      LayoutMode: Top;
+      Anchor: (Width: 900, Height: 460);
 
-    $C.@TextButton #EditButton {
-      Text: "Edit";
-      Anchor: (Width: 220, Height: 40);
+      Group #ShopRows {
+        LayoutMode: Top;
+        Anchor: (Height: 400);
+
+        Group #ShopRowTemplate {
+          Visible: false;           // important
+          LayoutMode: Center;
+          Anchor: (Height: 38);
+
+          Label #ShopName {
+            Text: "";
+            Style: (...$C.@DefaultLabelStyle, RenderBold: true, HorizontalAlignment: Center);
+            Anchor: (Width: 200, Height: 24);
+          }
+
+          Label #ShopTrades {
+            Text: "";
+            Style: (...$C.@DefaultLabelStyle, HorizontalAlignment: Center);
+            Anchor: (Width: 80, Height: 24, Left: 8);
+          }
+
+          Label #ShopNpcStatus {
+            Text: "";
+            Style: (...$C.@DefaultLabelStyle, HorizontalAlignment: Center);
+            Anchor: (Width: 60, Height: 24, Left: 8);
+          }
+
+          $C.@TextButton #ShopRenameButton {
+            Text: "Rename";
+            Anchor: (Width: 150, Height: 28, Left: 8);
+          }
+
+          $C.@CancelTextButton #ShopDeleteButton {
+            Text: "Delete";
+            Anchor: (Width: 120, Height: 28, Left: 6);
+          }
+
+          $C.@TextButton #ShopNpcButton {
+            Text: "Spawn NPC";
+            Anchor: (Width: 180, Height: 28, Left: 6);
+          }
+        }
+      }
+
+      Group #ActionButtons {
+        LayoutMode: Center;
+        Anchor: (Top: 8, Height: 48);
+
+        Group {
+          LayoutMode: Left;
+          Anchor: (Height: 48);
+
+          $C.@TextButton #PreviewShopButton {
+            Text: "Preview Shop";
+            Anchor: (Width: 200, Height: 40);
+          }
+
+          Group {
+            Anchor: (Width: 12);
+          }
+
+          $C.@TextButton #EditButton {
+            Text: "Edit Trades";
+            Anchor: (Width: 200, Height: 40);
+          }
+        }
+      }
     }
   }
 }

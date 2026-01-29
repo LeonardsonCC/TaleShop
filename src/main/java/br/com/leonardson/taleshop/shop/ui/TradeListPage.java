@@ -29,9 +29,11 @@ import javax.annotation.Nullable;
 
 public class TradeListPage extends InteractiveCustomUIPage<TradeListPage.TradeListEventData> {
     private static final String PAGE_PATH = "Pages/TradeListPage.ui";
+    private static final String TRADE_ROWS_SELECTOR = "#TradeRows";
+    private static final String ROW_TEMPLATE_PATH = "Pages/TradeRow.ui";
+    
     private final String ownerId;
     private final String shopName;
-    private List<Trade> currentTrades = new ArrayList<>();
 
     public TradeListPage(@Nonnull PlayerRef playerRef, @Nonnull String ownerId, @Nonnull String shopName) {
         super(playerRef, CustomPageLifetime.CanDismiss, TradeListEventData.CODEC);
@@ -59,20 +61,6 @@ public class TradeListPage extends InteractiveCustomUIPage<TradeListPage.TradeLi
             EventData.of("Action", "Back"),
             false
         );
-        for (int i = 1; i <= ShopRegistry.MAX_TRADES; i++) {
-            eventBuilder.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#TradeEditButton" + i,
-                EventData.of("Action", "Edit:" + i),
-                false
-            );
-            eventBuilder.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#TradeDeleteButton" + i,
-                EventData.of("Action", "Delete:" + i),
-                false
-            );
-        }
 
         commandBuilder.set("#TitleLabel.Text", shopName + " Trades");
 
@@ -82,24 +70,39 @@ public class TradeListPage extends InteractiveCustomUIPage<TradeListPage.TradeLi
         }
 
         List<Trade> trades = loadTrades(registry);
-        currentTrades = trades;
-        for (int i = 0; i < ShopRegistry.MAX_TRADES; i++) {
-            int row = i + 1;
-            String rowId = "#TradeRow" + row;
-            if (i < trades.size()) {
-                Trade trade = trades.get(i);
-                commandBuilder.set(rowId + ".Visible", true);
-                // commandBuilder.set("#TradeLabel" + row + ".Text", formatTrade(trade));
-                commandBuilder.set("#TradeInputQty" + row + ".Text", "x" + trade.inputQuantity());
-                commandBuilder.set("#TradeOutputQty" + row + ".Text", "x" + trade.outputQuantity());
-                commandBuilder.set("#TradeInputSlot" + row + ".Slots", buildTradeSlot(trade.inputItemId(), trade.inputQuantity()));
-                commandBuilder.set("#TradeOutputSlot" + row + ".Slots", buildTradeSlot(trade.outputItemId(), trade.outputQuantity()));
-            } else {
-                commandBuilder.set(rowId + ".Visible", false);
-                // commandBuilder.set("#TradeLabel" + row + ".Text", "");
-                commandBuilder.set("#TradeInputQty" + row + ".Text", "");
-                commandBuilder.set("#TradeOutputQty" + row + ".Text", "");
-            }
+        
+        // Clear the list first
+        commandBuilder.clear(TRADE_ROWS_SELECTOR);
+        
+        // Dynamically append trade rows
+        for (int i = 0; i < trades.size(); i++) {
+            Trade trade = trades.get(i);
+            
+            // Append the template
+            commandBuilder.append(TRADE_ROWS_SELECTOR, ROW_TEMPLATE_PATH);
+            
+            // Build the selector for this row using array notation
+            String rowSelector = TRADE_ROWS_SELECTOR + "[" + i + "]";
+            
+            // Set data for this row
+            commandBuilder.set(rowSelector + " #TradeInputQty.Text", "x" + trade.inputQuantity());
+            commandBuilder.set(rowSelector + " #TradeOutputQty.Text", "x" + trade.outputQuantity());
+            commandBuilder.set(rowSelector + " #TradeInputSlot.Slots", buildTradeSlot(trade.inputItemId(), trade.inputQuantity()));
+            commandBuilder.set(rowSelector + " #TradeOutputSlot.Slots", buildTradeSlot(trade.outputItemId(), trade.outputQuantity()));
+            
+            // Bind events for this row's buttons
+            eventBuilder.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                rowSelector + " #TradeEditButton",
+                new EventData().append("Action", "Edit").append("TradeIndex", String.valueOf(i)),
+                false
+            );
+            eventBuilder.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                rowSelector + " #TradeDeleteButton",
+                new EventData().append("Action", "Delete").append("TradeIndex", String.valueOf(i)),
+                false
+            );
         }
     }
 
@@ -125,26 +128,35 @@ public class TradeListPage extends InteractiveCustomUIPage<TradeListPage.TradeLi
             return;
         }
 
-        if (data.action.startsWith("Edit:")) {
-            int rowIndex = parseRowIndex(data.action);
-            if (rowIndex < 0 || rowIndex >= currentTrades.size()) {
+        ShopRegistry registry = resolveRegistry();
+        if (registry == null) {
+            return;
+        }
+
+        List<Trade> trades = loadTrades(registry);
+        
+        // Parse trade index from event data
+        int tradeIndex = -1;
+        if (data.tradeIndex != null) {
+            try {
+                tradeIndex = Integer.parseInt(data.tradeIndex);
+            } catch (NumberFormatException ignored) {
                 return;
             }
-            Trade trade = currentTrades.get(rowIndex);
+        }
+        
+        if (tradeIndex < 0 || tradeIndex >= trades.size()) {
+            return;
+        }
+        
+        Trade trade = trades.get(tradeIndex);
+
+        if ("Edit".equals(data.action)) {
             player.getPageManager().openCustomPage(ref, store, new TradeEditorPage(playerRef, ownerId, shopName, trade.id()));
             return;
         }
 
-        if (data.action.startsWith("Delete:")) {
-            int rowIndex = parseRowIndex(data.action);
-            if (rowIndex < 0 || rowIndex >= currentTrades.size()) {
-                return;
-            }
-            Trade trade = currentTrades.get(rowIndex);
-            ShopRegistry registry = resolveRegistry();
-            if (registry == null) {
-                return;
-            }
+        if ("Delete".equals(data.action)) {
             try {
                 registry.removeTrade(ownerId, shopName, trade.id());
             } catch (IllegalArgumentException ignored) {
@@ -169,23 +181,6 @@ public class TradeListPage extends InteractiveCustomUIPage<TradeListPage.TradeLi
             return null;
         }
         return plugin.getShopRegistry();
-    }
-
-    private String formatTrade(@Nonnull Trade trade) {
-        return "#" + trade.id() + " " + trade.inputItemId() + " -> " + trade.outputItemId();
-    }
-
-    private int parseRowIndex(@Nonnull String action) {
-        String raw = action.substring("Edit:".length()).trim();
-        if (action.startsWith("Delete:")) {
-            raw = action.substring("Delete:".length()).trim();
-        }
-        try {
-            int row = Integer.parseInt(raw);
-            return row - 1;
-        } catch (NumberFormatException ignored) {
-            return -1;
-        }
     }
 
     private ItemGridSlot[] buildTradeSlot(@Nonnull String itemId, int quantity) {
@@ -468,10 +463,11 @@ public class TradeListPage extends InteractiveCustomUIPage<TradeListPage.TradeLi
 
     public static class TradeListEventData {
         public static final BuilderCodec<TradeListEventData> CODEC = BuilderCodec.builder(TradeListEventData.class, TradeListEventData::new)
-            .append(new KeyedCodec<>("Action", Codec.STRING), (data, s) -> data.action = s, data -> data.action)
-            .add()
+            .append(new KeyedCodec<>("Action", Codec.STRING), (data, s) -> data.action = s, data -> data.action).add()
+            .append(new KeyedCodec<>("TradeIndex", Codec.STRING), (data, s) -> data.tradeIndex = s, data -> data.tradeIndex).add()
             .build();
         private String action;
+        private String tradeIndex;
 
         public TradeListEventData() {
         }

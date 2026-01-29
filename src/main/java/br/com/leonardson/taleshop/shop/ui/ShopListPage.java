@@ -1,7 +1,6 @@
 package br.com.leonardson.taleshop.shop.ui;
 
 import br.com.leonardson.taleshop.TaleShop;
-import br.com.leonardson.taleshop.player.PlayerIdentity;
 import br.com.leonardson.taleshop.shop.Shop;
 import br.com.leonardson.taleshop.shop.ShopRegistry;
 import br.com.leonardson.taleshop.shop.TraderNpc;
@@ -26,10 +25,10 @@ import javax.annotation.Nonnull;
 
 public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListEventData> {
     private static final String PAGE_PATH = "Pages/ShopListPage.ui";
-    private static final int MAX_SHOPS_DISPLAYED = 10;
+    private static final String SHOP_ROWS_SELECTOR = "#ShopRows";
+    private static final String ROW_TEMPLATE_PATH = "Pages/ShopRow.ui";
     
     private final String ownerId;
-    private List<Shop> currentShops = new ArrayList<>();
 
     public ShopListPage(@Nonnull PlayerRef playerRef, @Nonnull String ownerId) {
         super(playerRef, CustomPageLifetime.CanDismiss, ShopListEventData.CODEC);
@@ -52,28 +51,6 @@ public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListE
             EventData.of("Action", "Create"),
             false
         );
-        
-        // Bind all shop row buttons
-        for (int i = 1; i <= MAX_SHOPS_DISPLAYED; i++) {
-            eventBuilder.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#ShopEditButton" + i,
-                EventData.of("Action", "Edit:" + i),
-                false
-            );
-            eventBuilder.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#ShopDeleteButton" + i,
-                EventData.of("Action", "Delete:" + i),
-                false
-            );
-            eventBuilder.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#ShopNpcButton" + i,
-                EventData.of("Action", "Npc:" + i),
-                false
-            );
-        }
 
         ShopRegistry registry = resolveRegistry();
         if (registry == null) {
@@ -81,25 +58,48 @@ public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListE
         }
 
         List<Shop> shops = loadShops(registry);
-        currentShops = shops;
         
-        for (int i = 0; i < MAX_SHOPS_DISPLAYED; i++) {
-            int row = i + 1;
-            String rowId = "#ShopRow" + row;
+        // Clear the list first
+        commandBuilder.clear(SHOP_ROWS_SELECTOR);
+        
+        // Dynamically append shop rows
+        for (int i = 0; i < shops.size(); i++) {
+            Shop shop = shops.get(i);
             
-            if (i < shops.size()) {
-                Shop shop = shops.get(i);
-                boolean hasNpc = shop.traderUuid() != null && !shop.traderUuid().isBlank();
-                int tradeCount = shop.trades().size();
-                
-                commandBuilder.set(rowId + ".Visible", true);
-                commandBuilder.set("#ShopName" + row + ".Text", shop.name());
-                commandBuilder.set("#ShopTrades" + row + ".Text", tradeCount + "/" + ShopRegistry.MAX_TRADES);
-                commandBuilder.set("#ShopNpcStatus" + row + ".Text", hasNpc ? "NPC: ●" : "NPC: ○");
-                commandBuilder.set("#ShopNpcButton" + row + ".Text", hasNpc ? "Despawn" : "Spawn NPC");
-            } else {
-                commandBuilder.set(rowId + ".Visible", false);
-            }
+            // Append the template
+            commandBuilder.append(SHOP_ROWS_SELECTOR, ROW_TEMPLATE_PATH);
+            
+            // Build the selector for this row using array notation
+            String rowSelector = SHOP_ROWS_SELECTOR + "[" + i + "]";
+            
+            boolean hasNpc = shop.traderUuid() != null && !shop.traderUuid().isBlank();
+            int tradeCount = shop.trades().size();
+            
+            // Set data for this row
+            commandBuilder.set(rowSelector + " #ShopName.Text", shop.name());
+            commandBuilder.set(rowSelector + " #ShopTrades.Text", tradeCount + "/" + ShopRegistry.MAX_TRADES);
+            commandBuilder.set(rowSelector + " #ShopNpcStatus.Text", hasNpc ? "NPC: ●" : "NPC: ○");
+            commandBuilder.set(rowSelector + " #ShopNpcButton.Text", hasNpc ? "Despawn" : "Spawn NPC");
+            
+            // Bind events for this row's buttons
+            eventBuilder.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                rowSelector + " #ShopEditButton",
+                new EventData().append("Action", "Edit").append("ShopIndex", String.valueOf(i)),
+                false
+            );
+            eventBuilder.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                rowSelector + " #ShopDeleteButton",
+                new EventData().append("Action", "Delete").append("ShopIndex", String.valueOf(i)),
+                false
+            );
+            eventBuilder.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                rowSelector + " #ShopNpcButton",
+                new EventData().append("Action", "Npc").append("ShopIndex", String.valueOf(i)),
+                false
+            );
         }
     }
 
@@ -120,32 +120,40 @@ public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListE
             return;
         }
 
-        if (data.action.startsWith("Edit:")) {
-            int shopIndex = parseRowIndex(data.action);
-            if (shopIndex < 0 || shopIndex >= currentShops.size()) {
+        ShopRegistry registry = resolveRegistry();
+        if (registry == null) {
+            return;
+        }
+
+        List<Shop> shops = loadShops(registry);
+        
+        // Parse shop index from event data
+        int shopIndex = -1;
+        if (data.shopIndex != null) {
+            try {
+                shopIndex = Integer.parseInt(data.shopIndex);
+            } catch (NumberFormatException ignored) {
                 return;
             }
-            Shop shop = currentShops.get(shopIndex);
+        }
+        
+        if (shopIndex < 0 || shopIndex >= shops.size()) {
+            return;
+        }
+        
+        Shop shop = shops.get(shopIndex);
+
+        if ("Edit".equals(data.action)) {
             player.getPageManager().openCustomPage(ref, store, new ShopEditorPage(playerRef, ownerId, shop.name()));
             return;
         }
 
-        if (data.action.startsWith("Delete:")) {
-            int shopIndex = parseRowIndex(data.action);
-            if (shopIndex < 0 || shopIndex >= currentShops.size()) {
-                return;
-            }
-            Shop shop = currentShops.get(shopIndex);
+        if ("Delete".equals(data.action)) {
             player.getPageManager().openCustomPage(ref, store, new ShopDeleteConfirmationPage(playerRef, ownerId, shop.name()));
             return;
         }
 
-        if (data.action.startsWith("Npc:")) {
-            int shopIndex = parseRowIndex(data.action);
-            if (shopIndex < 0 || shopIndex >= currentShops.size()) {
-                return;
-            }
-            Shop shop = currentShops.get(shopIndex);
+        if ("Npc".equals(data.action)) {
             handleNpcToggle(ref, store, player, playerRef, shop);
             return;
         }
@@ -213,25 +221,13 @@ public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListE
         return plugin.getShopRegistry();
     }
 
-    private int parseRowIndex(@Nonnull String action) {
-        String[] parts = action.split(":");
-        if (parts.length < 2) {
-            return -1;
-        }
-        try {
-            int row = Integer.parseInt(parts[1].trim());
-            return row - 1;
-        } catch (NumberFormatException ignored) {
-            return -1;
-        }
-    }
-
     public static class ShopListEventData {
         public static final BuilderCodec<ShopListEventData> CODEC = BuilderCodec.builder(ShopListEventData.class, ShopListEventData::new)
-            .append(new KeyedCodec<>("Action", Codec.STRING), (data, s) -> data.action = s, data -> data.action)
-            .add()
+            .append(new KeyedCodec<>("Action", Codec.STRING), (data, s) -> data.action = s, data -> data.action).add()
+            .append(new KeyedCodec<>("ShopIndex", Codec.STRING), (data, s) -> data.shopIndex = s, data -> data.shopIndex).add()
             .build();
         private String action;
+        private String shopIndex;
 
         public ShopListEventData() {
         }
