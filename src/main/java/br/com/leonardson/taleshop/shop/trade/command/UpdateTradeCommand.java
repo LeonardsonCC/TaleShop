@@ -6,7 +6,6 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.DefaultArg;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -17,10 +16,9 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import br.com.leonardson.taleshop.player.PlayerIdentity;
 import br.com.leonardson.taleshop.shop.ShopRegistry;
 import br.com.leonardson.taleshop.shop.command.AbstractShopCommand;
-import br.com.leonardson.taleshop.shop.trade.Trade;
 
 public class UpdateTradeCommand extends AbstractShopCommand {
-    DefaultArg<String> argName;
+    RequiredArg<String> argName;
     RequiredArg<Integer> tradeIdArg;
     RequiredArg<String> inputItemArg;
     RequiredArg<Integer> inputQtyArg;
@@ -29,7 +27,7 @@ public class UpdateTradeCommand extends AbstractShopCommand {
 
     public UpdateTradeCommand(ShopRegistry shopRegistry) {
         super("update", "Update trade", shopRegistry);
-        this.argName = this.withDefaultArg("name", "shop name", ArgTypes.STRING, "Shop", "Shop as default");
+        this.argName = this.withRequiredArg("name", "shop name", ArgTypes.STRING);
         this.tradeIdArg = this.withRequiredArg("tradeId", "trade id", ArgTypes.INTEGER);
         this.inputItemArg = this.withRequiredArg("inputItem", "input item", ArgTypes.STRING);
         this.inputQtyArg = this.withRequiredArg("inputQty", "input quantity", ArgTypes.INTEGER);

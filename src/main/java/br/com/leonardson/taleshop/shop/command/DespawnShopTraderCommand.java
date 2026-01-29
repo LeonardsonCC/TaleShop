@@ -1,16 +1,20 @@
 package br.com.leonardson.taleshop.shop.command;
 
-import br.com.leonardson.taleshop.player.PlayerIdentity;
-import br.com.leonardson.taleshop.shop.Shop;
-import br.com.leonardson.taleshop.shop.ShopRegistry;
-import br.com.leonardson.taleshop.shop.TraderNpc;
-import br.com.leonardson.taleshop.interaction.TraderMessageInteraction;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Stream;
+
+import org.jetbrains.annotations.NotNull;
+
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
-import com.hypixel.hytale.server.core.command.system.arguments.system.DefaultArg;
+import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent;
@@ -18,20 +22,20 @@ import com.hypixel.hytale.server.core.modules.interaction.Interactions;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Stream;
-import org.jetbrains.annotations.NotNull;
+
+import br.com.leonardson.taleshop.interaction.TraderMessageInteraction;
+import br.com.leonardson.taleshop.player.PlayerIdentity;
+import br.com.leonardson.taleshop.shop.Shop;
+import br.com.leonardson.taleshop.shop.ShopRegistry;
+import br.com.leonardson.taleshop.shop.TraderNpc;
 
 public class DespawnShopTraderCommand extends AbstractShopCommand {
-    DefaultArg<String> argName;
+    RequiredArg<String> argName;
+
     public DespawnShopTraderCommand(ShopRegistry shopRegistry) {
         super("despawn", "Despawn shop trader", shopRegistry);
 
-        this.argName = this.withDefaultArg("name", "shop name", ArgTypes.STRING, "Shop", "Shop as default");
+        this.argName = this.withRequiredArg("name", "shop name", ArgTypes.STRING);
     }
 
     @Override
