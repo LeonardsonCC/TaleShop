@@ -27,6 +27,8 @@ public class CreateTradeCommand extends AbstractShopCommand {
 
     public CreateTradeCommand(ShopRegistry shopRegistry) {
         super("create", "Create trade", shopRegistry);
+        this.requirePermission("taleshop.shop.manage");
+
         this.argName = this.withRequiredArg("name", "shop name", ArgTypes.STRING);
         this.inputItemArg = this.withRequiredArg("inputItem", "input item", ArgTypes.STRING);
         this.inputQtyArg = this.withRequiredArg("inputQty", "input quantity", ArgTypes.INTEGER);

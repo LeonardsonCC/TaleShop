@@ -22,6 +22,7 @@ public class CreateShopCommand extends AbstractShopCommand {
 
     public CreateShopCommand(ShopRegistry shopRegistry) {
         super("create", "Create shop", shopRegistry);
+        this.requirePermission("taleshop.shop.manage");
 
         this.argName = this.withRequiredArg("name", "shop name", ArgTypes.STRING);
     }

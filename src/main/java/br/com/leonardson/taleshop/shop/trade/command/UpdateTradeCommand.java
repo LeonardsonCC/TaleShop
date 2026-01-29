@@ -27,6 +27,8 @@ public class UpdateTradeCommand extends AbstractShopCommand {
 
     public UpdateTradeCommand(ShopRegistry shopRegistry) {
         super("update", "Update trade", shopRegistry);
+        this.requirePermission("taleshop.shop.manage");
+
         this.argName = this.withRequiredArg("name", "shop name", ArgTypes.STRING);
         this.tradeIdArg = this.withRequiredArg("tradeId", "trade id", ArgTypes.INTEGER);
         this.inputItemArg = this.withRequiredArg("inputItem", "input item", ArgTypes.STRING);

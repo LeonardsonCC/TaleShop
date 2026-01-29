@@ -23,6 +23,7 @@ public class SpawnShopTraderCommand extends AbstractShopCommand {
 
     public SpawnShopTraderCommand(ShopRegistry shopRegistry) {
         super("spawn", "Spawn shop trader", shopRegistry);
+        this.requirePermission("taleshop.shop.manage");
 
         this.argName = this.withRequiredArg("name", "shop name", ArgTypes.STRING);
     }

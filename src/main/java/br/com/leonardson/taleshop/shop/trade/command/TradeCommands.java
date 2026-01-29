@@ -7,6 +7,7 @@ import br.com.leonardson.taleshop.shop.ShopRegistry;
 public class TradeCommands extends AbstractCommandCollection {
     public TradeCommands(ShopRegistry tradeRegistry) {
         super("trade", "Trade commands");
+        this.requirePermission("taleshop.shop.manage");
 
         addSubCommand(new ListTradesCommand(tradeRegistry));
         addSubCommand(new CreateTradeCommand(tradeRegistry));

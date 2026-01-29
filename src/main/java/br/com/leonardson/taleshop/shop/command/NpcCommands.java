@@ -9,11 +9,7 @@ public class NpcCommands extends AbstractCommandCollection {
     public NpcCommands(ShopRegistry shopRegistry) {
         super("npc", "Shop NPC commands");
 
-        // Allow non-OP players to use shop commands
-        // this.setPermissionGroup(GameMode.Adventure);
-
-        // Require taleshop.shop permission
-        this.requirePermission("taleshop.shop.npc");
+        this.requirePermission("taleshop.shop.manage");
 
         addSubCommand(new SpawnShopTraderCommand(shopRegistry));
         addSubCommand(new DespawnShopTraderCommand(shopRegistry));

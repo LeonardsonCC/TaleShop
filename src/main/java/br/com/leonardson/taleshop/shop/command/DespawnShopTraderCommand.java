@@ -34,6 +34,7 @@ public class DespawnShopTraderCommand extends AbstractShopCommand {
 
     public DespawnShopTraderCommand(ShopRegistry shopRegistry) {
         super("despawn", "Despawn shop trader", shopRegistry);
+        this.requirePermission("taleshop.shop.manage");
 
         this.argName = this.withRequiredArg("name", "shop name", ArgTypes.STRING);
     }

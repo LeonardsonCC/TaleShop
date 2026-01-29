@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 public class ShopEditorCommand extends AbstractShopCommand {
     public ShopEditorCommand(ShopRegistry shopRegistry) {
         super("editor", "Open shop management UI", shopRegistry);
+        this.requirePermission("taleshop.shop.manage");
     }
 
     @Override

@@ -23,6 +23,8 @@ public class RenameShopCommand extends AbstractShopCommand {
 
     public RenameShopCommand(ShopRegistry shopRegistry) {
         super("rename", "Rename shop", shopRegistry);
+        this.requirePermission("taleshop.shop.manage");
+
         this.argName = this.withRequiredArg("name", "shop name", ArgTypes.STRING);
         this.argNewName = this.withRequiredArg("newName", "new shop name", ArgTypes.STRING);
     }

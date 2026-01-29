@@ -22,6 +22,7 @@ public class GetShopCommand extends AbstractShopCommand {
 
     public GetShopCommand(ShopRegistry shopRegistry) {
         super("get", "Get shop", shopRegistry);
+        this.requirePermission("taleshop.shop.manage");
 
         this.argName = this.withRequiredArg("name", "shop name", ArgTypes.STRING);
     }

@@ -10,11 +10,7 @@ public class ShopCommands extends AbstractCommandCollection {
     public ShopCommands(ShopRegistry shopRegistry) {
         super("shop", "Shop commands");
 
-        // Allow non-OP players to use shop commands
-        // this.setPermissionGroup(GameMode.Adventure);
-        
-        // Require taleshop.shop permission
-        this.requirePermission("taleshop.shop");
+        this.requirePermission("taleshop.shop.manage");
 
         addSubCommand(new CreateShopCommand(shopRegistry));
         addSubCommand(new RenameShopCommand(shopRegistry));

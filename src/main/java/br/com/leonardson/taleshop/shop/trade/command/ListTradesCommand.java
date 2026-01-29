@@ -24,6 +24,8 @@ public class ListTradesCommand extends AbstractShopCommand {
 
     public ListTradesCommand(ShopRegistry shopRegistry) {
         super("list", "List trades", shopRegistry);
+        this.requirePermission("taleshop.shop.manage");
+
         this.argName = this.withRequiredArg("name", "shop name", ArgTypes.STRING);
     }
 

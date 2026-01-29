@@ -21,6 +21,8 @@ public class DeleteShopCommand extends AbstractShopCommand {
 
     public DeleteShopCommand(ShopRegistry shopRegistry) {
         super("delete", "Delete shop", shopRegistry);
+        this.requirePermission("taleshop.shop.manage");
+
         this.argName = this.withRequiredArg("name", "shop name", ArgTypes.STRING);
     }
 

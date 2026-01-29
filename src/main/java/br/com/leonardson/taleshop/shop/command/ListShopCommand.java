@@ -20,6 +20,7 @@ import br.com.leonardson.taleshop.shop.ShopRegistry;
 public class ListShopCommand extends AbstractShopCommand {
     public ListShopCommand(ShopRegistry shopRegistry) {
         super("list", "List shop", shopRegistry);
+        this.requirePermission("taleshop.shop.manage");
     }
 
     @Override
