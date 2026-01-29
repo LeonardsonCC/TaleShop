@@ -25,7 +25,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class PlayerInventoryPage extends InteractiveCustomUIPage<PlayerInventoryPage.InventoryEventData> {
-    private static final String PAGE_PATH = "Pages/TaleShopInventorySelectionPage.ui";
+    private static final String PAGE_PATH = "Pages/InventorySelectionPage.ui";
     private static final int NO_SELECTION = -1;
     private static final int INVENTORY_GRID_COLUMNS = 9;
     private static final int INVENTORY_GRID_ROWS = 10;
