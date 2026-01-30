@@ -21,7 +21,7 @@ A Hytale server plugin that enables players to create and manage custom trading 
 
 ## Installation
 
-1. Download the latest `TaleShop-1.0.0.jar` from releases
+1. Download the latest `TaleShop-1.0.1.jar` from releases
 2. Place the JAR file in your server's `mods/` directory
 3. Start or restart your server
 4. Configuration will be auto-generated at `run/mods/Leonardson_TaleShop/TaleShopConfig.json`
@@ -32,7 +32,7 @@ A Hytale server plugin that enables players to create and manage custom trading 
 ./gradlew build
 ```
 
-The compiled JAR will be available at `build/libs/TaleShop-1.0.0.jar`
+The compiled JAR will be available at `build/libs/TaleShop-1.0.1.jar`
 
 ## Configuration
 
