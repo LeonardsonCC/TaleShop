@@ -1,0 +1,78 @@
+name: Build and Upload Release
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract version from tag
+        id: version
+        run: |
+          # Get the tag name (e.g., v1.1.1 or 1.1.1)
+          TAG_NAME="${{ github.event.release.tag_name }}"
+          # Remove 'v' prefix if present
+          VERSION="${TAG_NAME#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+      
+      - name: Update version in build.gradle.kts
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" build.gradle.kts
+          echo "Updated build.gradle.kts to version $VERSION"
+          cat build.gradle.kts | grep "^version ="
+      
+      - name: Commit version change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add build.gradle.kts
+          git commit -m "chore: bump version to ${{ steps.version.outputs.version }}" || echo "No changes to commit"
+          git push origin HEAD:${{ github.event.release.target_commitish }} || echo "No changes to push"
+      
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+      
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+      
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+      
+      - name: Build with Gradle
+        run: ./gradlew build --no-daemon
+        env:
+          COMMIT_SHA_SHORT: ${{ github.sha }}
+      
+      - name: Find JAR file
+        id: find_jar
+        run: |
+          JAR_FILE=$(find build/libs -name "*.jar" ! -name "*-sources.jar" | head -n 1)
+          echo "jar_file=$JAR_FILE" >> $GITHUB_OUTPUT
+          echo "jar_name=$(basename $JAR_FILE)" >> $GITHUB_OUTPUT
+          echo "Found JAR: $JAR_FILE"
+      
+      - name: Upload JAR to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ steps.find_jar.outputs.jar_file }}
+          asset_name: ${{ steps.find_jar.outputs.jar_name }}
+          asset_content_type: application/java-archive
