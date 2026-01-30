@@ -7,11 +7,11 @@ import br.com.leonardson.taleshop.shop.trade.command.TradeCommands;
 
 public class ShopCommands extends AbstractCommandCollection {
     public ShopCommands(ShopRegistry shopRegistry) {
-        super("shop", "Shop commands");
+        super("taleshop", "Shop commands");
 
         this.requirePermission("taleshop.shop.manage");
 
-        this.addAliases("taleshop", "tshop");
+        this.addAliases("shop", "tshop", "barter");
 
         addSubCommand(new CreateShopCommand(shopRegistry));
         addSubCommand(new RenameShopCommand(shopRegistry));
