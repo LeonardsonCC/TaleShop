@@ -85,55 +85,56 @@ The compiled JAR will be available at `build/libs/TaleShop-1.0.1.jar`
 
 ## Permissions
 
-All shop management commands require the following permission:
+| Permission | Description |
+|------------|-------------|
+| `taleshop.shop.manage` | Required for all shop management commands (create, delete, rename, etc.) |
+| `taleshop.shop.open` | Allows opening shops remotely via `/shop open` command |
 
-```
-taleshop.shop.manage
-```
-
-Players without this permission cannot create or manage shops, but can still interact with shop NPCs to make trades.
+Players without these permissions can still interact with shop NPCs to make trades.
 
 ## Commands
 
-All commands use the base `/shop` command with various subcommands. **All commands require the `taleshop.shop.manage` permission.**
+All commands use the base `/shop` command with various subcommands. Alternative aliases: `/taleshop`, `/tshop`, `/barter`
 
 ### Shop Management
 
-| Command | Description | Usage |
-|---------|-------------|-------|
-| `/shop create <name>` | Create a new shop | `/shop create MyShop` |
-| `/shop rename <name> <newName>` | Rename an existing shop | `/shop rename MyShop BetterShop` |
-| `/shop delete <name>` | Delete a shop and all its trades | `/shop delete MyShop` |
-| `/shop list` | List all your shops with trade counts | `/shop list` |
-| `/shop get <name>` | Get detailed information about a shop | `/shop get MyShop` |
-| `/shop editor` | Open the graphical shop management UI | `/shop editor` |
+| Command | Description | Usage | Permission |
+|---------|-------------|-------|------------|
+| `/shop create <name>` | Create a new shop | `/shop create MyShop` | `taleshop.shop.manage` |
+| `/shop rename <name> <newName>` | Rename an existing shop | `/shop rename MyShop BetterShop` | `taleshop.shop.manage` |
+| `/shop delete <name>` | Delete a shop and all its trades | `/shop delete MyShop` | `taleshop.shop.manage` |
+| `/shop list` | List all your shops with trade counts | `/shop list` | `taleshop.shop.manage` |
+| `/shop get <name>` | Get detailed information about a shop | `/shop get MyShop` | `taleshop.shop.manage` |
+| `/shop editor` | Open the graphical shop management UI | `/shop editor` | `taleshop.shop.manage` |
+| `/shop open <owner> <shop>` | Open a shop remotely without NPC interaction | `/shop open PlayerName MyShop` | `taleshop.shop.open` |
 
 ### NPC Management
 
-| Command | Description | Usage |
-|---------|-------------|-------|
-| `/shop npc spawn <name>` | Spawn an NPC trader for your shop at your location | `/shop npc spawn MyShop` |
-| `/shop npc despawn <name>` | Remove the NPC trader for your shop | `/shop npc despawn MyShop` |
+| Command | Description | Usage | Permission |
+|---------|-------------|-------|------------|
+| `/shop npc spawn <name>` | Spawn an NPC trader for your shop at your location | `/shop npc spawn MyShop` | `taleshop.shop.manage` |
+| `/shop npc despawn <name>` | Remove the NPC trader for your shop | `/shop npc despawn MyShop` | `taleshop.shop.manage` |
 
 ### Trade Management
 
-| Command | Description | Usage |
-|---------|-------------|-------|
-| `/shop trade create <shopName> <inputItem> <inputQty> <outputItem> <outputQty>` | Create a new trade in the shop (max 20 per shop) | `/shop trade create MyShop Ingredient_Gold 10 Tool_IronSword 1` |
-| `/shop trade list <shopName>` | List all trades in a shop | `/shop trade list MyShop` |
-| `/shop trade update <shopName> <tradeId> <inputItem> <inputQty> <outputItem> <outputQty>` | Update an existing trade | `/shop trade update MyShop 1 Ingredient_Gold 5 Tool_IronSword 1` |
-| `/shop trade delete <shopName> <tradeId>` | Delete a trade from a shop | `/shop trade delete MyShop 1` |
+| Command | Description | Usage | Permission |
+|---------|-------------|-------|------------|
+| `/shop trade create <shopName> <inputItem> <inputQty> <outputItem> <outputQty>` | Create a new trade in the shop (max 20 per shop) | `/shop trade create MyShop Ingredient_Gold 10 Tool_IronSword 1` | `taleshop.shop.manage` |
+| `/shop trade list <shopName>` | List all trades in a shop | `/shop trade list MyShop` | `taleshop.shop.manage` |
+| `/shop trade update <shopName> <tradeId> <inputItem> <inputQty> <outputItem> <outputQty>` | Update an existing trade | `/shop trade update MyShop 1 Ingredient_Gold 5 Tool_IronSword 1` | `taleshop.shop.manage` |
+| `/shop trade delete <shopName> <tradeId>` | Delete a trade from a shop | `/shop trade delete MyShop 1` | `taleshop.shop.manage` |
 
 ### Command Hierarchy
 
 ```
-/shop
+/shop (aliases: /taleshop, /tshop, /barter)
 ├── create <name>
 ├── rename <name> <newName>
 ├── delete <name>
 ├── list
 ├── get <name>
 ├── editor
+├── open <owner> <shop>
 ├── npc
 │   ├── spawn <name>
 │   └── despawn <name>
@@ -196,6 +197,29 @@ This opens an interactive UI where you can:
 - Create, edit, and delete shops
 - Manage trades visually
 - Configure shop settings
+
+### Opening Shops Remotely
+
+With the `taleshop.shop.open` permission, you can open any shop remotely without needing to find and interact with the NPC:
+
+```
+/shop open <owner_name> <shop_name>
+```
+
+**Examples:**
+```bash
+# Open Alice's weapon shop
+/shop open Alice WeaponShop
+
+# Open Bob's potion store
+/shop open Bob Potions
+```
+
+**Behavior:**
+- If you're the shop owner: Opens the management UI (same as right-clicking your own NPC)
+- If you're not the owner: Opens the shopping UI (same as right-clicking someone else's NPC)
+- Shop names and owner names are case-insensitive
+- Requires `taleshop.shop.open` permission
 
 ### Item ID Format
 
