@@ -346,7 +346,7 @@ The plugin automatically migrates from legacy `shops.properties` format if found
 
 ## License
 
-This project is licensed under the CC0 1.0 Universal (Public Domain) license. See [LICENSE.md](LICENSE.md) for details.
+This project is licensed under the MIT license. See [LICENSE.md](LICENSE.md) for details.
 
 ## Author
 
