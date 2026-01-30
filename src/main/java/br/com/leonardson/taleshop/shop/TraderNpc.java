@@ -11,6 +11,7 @@ import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.UUIDComponent;
+import com.hypixel.hytale.server.core.entity.nameplate.Nameplate;
 import com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent;
 import com.hypixel.hytale.server.core.modules.entity.component.HeadRotation;
 import com.hypixel.hytale.server.core.modules.entity.component.Interactable;
@@ -109,8 +110,29 @@ public class TraderNpc {
 
         this.ref = npcPair.first();
         this.npc = npcPair.second();
+        
+        setDisplayName(store, this.ref, traderName);
     }
-
+    
+    /**
+     * Sets the display name for an NPC entity.
+     * This method replicates the logic from EntitySupport.setDisplayName()
+     * which sets both the DisplayNameComponent and the Nameplate component.
+     */
+    private static void setDisplayName(@Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull String displayName) {
+        if (!ref.isValid()) {
+            return;
+        }
+        
+        // Set the DisplayNameComponent
+        store.putComponent(ref, DisplayNameComponent.getComponentType(), 
+                new DisplayNameComponent(Message.raw(displayName)));
+        
+        // Set the Nameplate component - this is what actually displays above the NPC!
+        Nameplate nameplateComponent = store.ensureAndGetComponent(ref, Nameplate.getComponentType());
+        nameplateComponent.setText(displayName);
+    }
+    
     public String getUuid(Store<EntityStore> store) {
         if (this.uuid != null && !this.uuid.isBlank()) {
             return this.uuid;
