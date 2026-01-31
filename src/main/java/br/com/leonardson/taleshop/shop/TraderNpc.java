@@ -221,13 +221,21 @@ public class TraderNpc {
     }
 
     private static void applyFreeze(Object npc, Store<EntityStore> entityStore, Ref<EntityStore> npcRef) {
-        // Apply frozen component
+        applyFreezeInternal(entityStore, npcRef);
+    }
+    
+    /**
+     * Internal method that applies all freeze-related components and states.
+     * This method can be called repeatedly to ensure the NPC stays frozen.
+     */
+    private static void applyFreezeInternal(Store<EntityStore> entityStore, Ref<EntityStore> npcRef) {
+        // 1. Apply Frozen component
         entityStore.ensureComponent(npcRef, Frozen.getComponentType());
         
-        // CRITICAL: Set MovementStates to idle to stop the walking animation
+        // 2. Set MovementStates to idle to stop the walking animation
         setIdleMovementState(entityStore, npcRef);
         
-        // Remove StepComponent to prevent ticking when frozen
+        // 3. Remove StepComponent to prevent ticking when frozen
         removeStepComponent(entityStore, npcRef);
     }
     
