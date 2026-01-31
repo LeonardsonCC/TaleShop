@@ -10,6 +10,7 @@ import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.server.core.Message;
+import com.hypixel.hytale.server.core.entity.Frozen;
 import com.hypixel.hytale.server.core.entity.UUIDComponent;
 import com.hypixel.hytale.server.core.entity.nameplate.Nameplate;
 import com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent;
@@ -90,6 +91,7 @@ public class TraderNpc {
                             new DisplayNameComponent(Message.raw(traderName)));
                     applyInteractable(entityStore);
                     applyInvulnerable(npc, entityStore, npcRef);
+                    applyFreeze(npc, entityStore, npcRef);
                 });
 
         if (npcPair == null || npcPair.first() == null || !npcPair.first().isValid()) {
@@ -224,6 +226,83 @@ public class TraderNpc {
         }
 
         applyInvulnerableComponent(entityStore, npcRef);
+    }
+
+    private static void applyFreeze(Object npc, Store<EntityStore> entityStore, Ref<EntityStore> npcRef) {
+        // Apply frozen component
+        entityStore.ensureComponent(npcRef, Frozen.getComponentType());
+        
+        // CRITICAL: Set MovementStates to idle to stop the walking animation
+        setIdleMovementState(entityStore, npcRef);
+        
+        // Remove StepComponent to prevent ticking when frozen
+        removeStepComponent(entityStore, npcRef);
+    }
+    
+    private static void setIdleMovementState(Store<EntityStore> entityStore, Ref<EntityStore> npcRef) {
+        try {
+            // Load the MovementStatesComponent class
+            Class<?> movementStatesComponentClass = Class.forName("com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent");
+            Object componentType = tryLoadComponentType("com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent");
+            
+            if (componentType == null) {
+                return;
+            }
+            
+            // Get the current MovementStatesComponent
+            Object movementStatesComponent = tryInvokeForResult(entityStore, "getComponent", npcRef, componentType);
+            if (movementStatesComponent == null) {
+                return;
+            }
+            
+            // Get the MovementStates object from the component
+            Method getMovementStatesMethod = findMethod(movementStatesComponentClass, "getMovementStates");
+            if (getMovementStatesMethod == null) {
+                return;
+            }
+            getMovementStatesMethod.setAccessible(true);
+            Object movementStates = getMovementStatesMethod.invoke(movementStatesComponent);
+            
+            if (movementStates == null) {
+                return;
+            }
+            
+            // Set all movement states to false except idle
+            Class<?> movementStatesClass = movementStates.getClass();
+            setField(movementStatesClass, movementStates, "idle", true);
+            setField(movementStatesClass, movementStates, "horizontalIdle", true);
+            setField(movementStatesClass, movementStates, "walking", false);
+            setField(movementStatesClass, movementStates, "running", false);
+            setField(movementStatesClass, movementStates, "sprinting", false);
+            setField(movementStatesClass, movementStates, "jumping", false);
+            setField(movementStatesClass, movementStates, "falling", false);
+            setField(movementStatesClass, movementStates, "flying", false);
+            setField(movementStatesClass, movementStates, "climbing", false);
+            setField(movementStatesClass, movementStates, "swimming", false);
+            
+        } catch (Exception ignored) {
+            // If we can't set movement states, that's okay - the Frozen component should still work
+        }
+    }
+    
+    private static void setField(Class<?> clazz, Object instance, String fieldName, boolean value) {
+        try {
+            java.lang.reflect.Field field = clazz.getField(fieldName);
+            field.setAccessible(true);
+            field.setBoolean(instance, value);
+        } catch (Exception ignored) {
+            // Field not found or can't be set
+        }
+    }
+    
+    private static void removeStepComponent(Store<EntityStore> entityStore, Ref<EntityStore> npcRef) {
+        // The StepComponent allows frozen NPCs to still tick at a special rate
+        // Removing it ensures the NPC completely stops ticking and moving
+        Object componentType = tryLoadComponentType("com.hypixel.hytale.server.npc.components.StepComponent");
+        if (componentType != null) {
+            tryInvoke(entityStore, "removeComponentIfExists", npcRef, componentType);
+            tryInvoke(entityStore, "tryRemoveComponent", npcRef, componentType);
+        }
     }
 
     public void applyInteractable(Store<EntityStore> entityStore) {
