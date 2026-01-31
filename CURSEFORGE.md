@@ -9,7 +9,8 @@ TaleShop allows players to set up custom trading shops with interactive NPC merc
 ## Key Features
 
 - **Player-Owned Shops** - Create as many shops as you want with custom trades
-- **NPC Traders** - Spawn Klops Merchant NPCs that players can interact with
+- **NPC Traders** - Spawn NPCs that players can interact with
+- **Custom Entity Selection** - Choose from any available NPC entity type for your trader (requires permission)
 - **Automatic Inventory** - Your shop pulls items from nearby chests automatically
 - **Easy Management** - Use commands or a graphical UI to manage your shops
 - **Remote Access** - Open any shop from anywhere without finding the NPC
@@ -47,7 +48,7 @@ The plugin automatically manages inventory - when players buy from your shop, it
    ```
    /shop npc spawn MyShop
    ```
-   The NPC will appear in front of you. Right-click it anytime to manage your shop!
+   The NPC will appear in front of you. If you have the `taleshop.npc.selectentity` permission, you can choose which entity type to use! Otherwise, it defaults to a Klops Merchant. Right-click it anytime to manage your shop!
 
 4. **Stock your shop:**
    Place chests within 2 blocks of the NPC and fill them with the items you're selling.
@@ -77,7 +78,7 @@ All commands use `/shop` (or `/taleshop`, `/tshop`, `/barter`)
 | `/shop create <name>` | Create a new shop |
 | `/shop editor` | Open the shop management interface |
 | `/shop list` | View all your shops |
-| `/shop npc spawn <name>` | Spawn your shop's NPC trader |
+| `/shop npc spawn <name> [entityRole]` | Spawn your shop's NPC trader (optionally specify entity type) |
 | `/shop npc despawn <name>` | Remove your shop's NPC |
 | `/shop open <owner> <shop>` | Open any shop remotely |
 
@@ -96,6 +97,7 @@ All commands use `/shop` (or `/taleshop`, `/tshop`, `/barter`)
 |------------|--------------|
 | `taleshop.shop.manage` | Create and manage shops (required for shop owners) |
 | `taleshop.shop.open` | Open shops remotely with `/shop open` |
+| `taleshop.npc.selectentity` | Choose custom NPC entity types when spawning traders |
 
 **Note:** Anyone can trade with NPCs - no permission needed!
 
@@ -163,6 +165,7 @@ The plugin creates a config file at `run/mods/Leonardson_TaleShop/TaleShopConfig
 
 - **Use the Editor**: The `/shop editor` command provides a visual interface - much easier than remembering commands!
 - **Right-Click Management**: Click your own NPC to quickly manage trades without typing commands
+- **Custom Entities**: If you have the `taleshop.npc.selectentity` permission, you can choose any NPC entity type (Klops, Feran, Trork, etc.) for your trader!
 - **Organize Your Storage**: Use multiple chests near your NPC for better organization
 - **Stock Management**: Keep your chests stocked - trades show as "Out of Stock" when empty
 - **Multiple Shops**: Create different shops for different item categories (Weapons, Potions, Resources, etc.)
@@ -192,6 +195,9 @@ A: Yes! Despawn it with `/shop npc despawn <name>` and spawn it at the new locat
 
 **Q: How do I know what items to use in trades?**  
 A: When using the editor, you can pick items directly from your inventory - no need to memorize item names!
+
+**Q: Can I use different NPC models for my traders?**  
+A: Yes! If you have the `taleshop.npc.selectentity` permission, you can choose from any available NPC entity type when spawning your trader. A searchable UI lets you preview and select the entity you want!
 
 ## Support
 

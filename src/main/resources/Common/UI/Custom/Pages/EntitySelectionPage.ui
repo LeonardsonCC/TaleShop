@@ -1,0 +1,101 @@
+$C = "../Common.ui";
+
+Group {
+  LayoutMode: Left;
+  Anchor: (Width: 500, Height: 580, Left: 50, Top: 50);
+
+  $C.@Container {
+    Anchor: (Width: 500, Height: 580);
+
+    #Title {
+      Group {
+        LayoutMode: Left;
+
+        $C.@Title #TitleLabel {
+          @Text = "Select Entity";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Center;
+
+      Group {
+        LayoutMode: Top;
+        Anchor: (Width: 480, Height: 500);
+
+        // Search bar
+        Group #SearchBar {
+          LayoutMode: Top;
+          Anchor: (Height: 80);
+
+          Label {
+            Text: "Search:";
+            Style: $C.@DefaultLabelStyle;
+            Anchor: (Height: 24);
+          }
+
+          Group {
+            Anchor: (Height: 4);
+          }
+
+          TextField #SearchInput {
+            Style: $C.@DefaultInputFieldStyle;
+            Background: $C.@InputBoxBackground;
+            Anchor: (Width: 460, Height: 36);
+            Padding: (Full: 8);
+          }
+        }
+
+        // Selected entity name
+        Group #SelectedGroup {
+          LayoutMode: Center;
+          Anchor: (Height: 50, Top: 8);
+
+          Label #SelectedName {
+            @Text = "Select an NPC";
+            Style: (...$C.@DefaultLabelStyle, RenderBold: true, HorizontalAlignment: Center);
+            Anchor: (Height: 28);
+          }
+        }
+
+        // Scrollable NPC list
+        Group #NPCListContainer {
+          FlexWeight: 1;
+          LayoutMode: TopScrolling;
+          ScrollbarStyle: $C.@DefaultScrollbarStyle;
+          Anchor: (Top: 8);
+
+          Group #NPCList {
+            LayoutMode: Top;
+          }
+        }
+
+        // Buttons
+        Group #ActionButtons {
+          LayoutMode: Center;
+          Anchor: (Height: 100, Top: 8);
+
+          Group {
+            LayoutMode: Top;
+            Anchor: (Width: 460);
+
+            $C.@TextButton #SpawnButton {
+              Text: "Spawn Trader";
+              Anchor: (Width: 460, Height: 44);
+            }
+
+            Group {
+              Anchor: (Height: 8);
+            }
+
+            $C.@CancelTextButton #CancelButton {
+              Text: "Cancel";
+              Anchor: (Width: 460, Height: 40);
+            }
+          }
+        }
+      }
+    }
+  }
+}

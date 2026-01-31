@@ -1,6 +1,7 @@
 package br.com.leonardson.taleshop.shop.ui;
 
 import br.com.leonardson.taleshop.TaleShop;
+import br.com.leonardson.taleshop.permission.PermissionUtil;
 import br.com.leonardson.taleshop.shop.Shop;
 import br.com.leonardson.taleshop.shop.ShopRegistry;
 import br.com.leonardson.taleshop.shop.TraderNpc;
@@ -183,20 +184,27 @@ public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListE
                 player.sendMessage(Message.raw("Failed to despawn NPC. It may have already been removed."));
             }
         } else {
-            // Spawn NPC
-            TraderNpc traderNpc = new TraderNpc(shop.name());
-            try {
-                traderNpc.spawn(store, ref);
-                String traderUuid = traderNpc.getUuid(store);
-                if (traderUuid != null && !traderUuid.isBlank()) {
-                    registry.setTraderUuid(ownerId, shop.name(), traderUuid);
-                    player.sendMessage(Message.raw("NPC spawned for " + shop.name()));
-                } else {
-                    player.sendMessage(Message.raw("NPC spawned but UUID not available."));
-                }
-            } catch (IllegalStateException ex) {
-                player.sendMessage(Message.raw("Failed to spawn NPC: " + ex.getMessage()));
+            // Check if player has permission to select entity type
+            if (PermissionUtil.hasEntitySelectionPermission(player)) {
+                // Open entity selection UI
+                player.getPageManager().openCustomPage(ref, store, new EntitySelectionPage(playerRef, ownerId, shop.name()));
                 return;
+            } else {
+                // Spawn default NPC (Klops_Merchant)
+                TraderNpc traderNpc = new TraderNpc(shop.name(), "Klops_Merchant");
+                try {
+                    traderNpc.spawn(store, ref);
+                    String traderUuid = traderNpc.getUuid(store);
+                    if (traderUuid != null && !traderUuid.isBlank()) {
+                        registry.setTraderUuid(ownerId, shop.name(), traderUuid);
+                        player.sendMessage(Message.raw("NPC spawned for " + shop.name()));
+                    } else {
+                        player.sendMessage(Message.raw("NPC spawned but UUID not available."));
+                    }
+                } catch (IllegalStateException ex) {
+                    player.sendMessage(Message.raw("Failed to spawn NPC: " + ex.getMessage()));
+                    return;
+                }
             }
         }
         

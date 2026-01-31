@@ -89,8 +89,11 @@ The compiled JAR will be available at `build/libs/TaleShop-1.0.1.jar`
 |------------|-------------|
 | `taleshop.shop.manage` | Required for all shop management commands (create, delete, rename, etc.) |
 | `taleshop.shop.open` | Allows opening shops remotely via `/shop open` command |
+| `taleshop.npc.selectentity` | Allows selecting custom entity types when spawning NPCs (opens entity selection UI) |
 
 Players without these permissions can still interact with shop NPCs to make trades.
+
+**Note:** Players without `taleshop.npc.selectentity` will spawn NPCs with the default "Klops_Merchant" entity type.
 
 ## Commands
 
