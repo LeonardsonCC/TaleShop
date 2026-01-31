@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "br.com.leonardson"
-version = "1.0.1"
+version = "1.1.0"
 val javaVersion = 25
 
 repositories {
