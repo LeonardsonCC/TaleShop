@@ -87,8 +87,8 @@ The compiled JAR will be available at `build/libs/TaleShop-1.0.1.jar`
 
 | Permission | Description |
 |------------|-------------|
-| `taleshop.shop.manage` | Required for all shop management commands (create, delete, rename, etc.) |
-| `taleshop.shop.open` | Allows opening shops remotely via `/shop open` command |
+| `taleshop.shop.manage` | Required for all `/shop` commands (base permission on the command collection) |
+| `taleshop.shop.open` | Additional permission required for `/shop open` |
 | `taleshop.npc.selectentity` | Allows selecting custom entity types when spawning NPCs (opens entity selection UI) |
 
 Players without these permissions can still interact with shop NPCs to make trades.
@@ -109,13 +109,13 @@ All commands use the base `/shop` command with various subcommands. Alternative 
 | `/shop list` | List all your shops with trade counts | `/shop list` | `taleshop.shop.manage` |
 | `/shop get <name>` | Get detailed information about a shop | `/shop get MyShop` | `taleshop.shop.manage` |
 | `/shop editor` | Open the graphical shop management UI | `/shop editor` | `taleshop.shop.manage` |
-| `/shop open <owner> <shop>` | Open a shop remotely without NPC interaction | `/shop open PlayerName MyShop` | `taleshop.shop.open` |
+| `/shop open <owner> <shop>` | Open a shop remotely without NPC interaction | `/shop open PlayerName MyShop` | `taleshop.shop.manage`, `taleshop.shop.open` |
 
 ### NPC Management
 
 | Command | Description | Usage | Permission |
 |---------|-------------|-------|------------|
-| `/shop npc spawn <name>` | Spawn an NPC trader for your shop at your location | `/shop npc spawn MyShop` | `taleshop.shop.manage` |
+| `/shop npc spawn <name> [entityRole]` | Spawn an NPC trader for your shop at your location | `/shop npc spawn MyShop` | `taleshop.shop.manage` |
 | `/shop npc despawn <name>` | Remove the NPC trader for your shop | `/shop npc despawn MyShop` | `taleshop.shop.manage` |
 
 ### Trade Management
@@ -139,7 +139,7 @@ All commands use the base `/shop` command with various subcommands. Alternative 
 ├── editor
 ├── open <owner> <shop>
 ├── npc
-│   ├── spawn <name>
+│   ├── spawn <name> [entityRole]
 │   └── despawn <name>
 └── trade
     ├── create <shopName> <inputItem> <inputQty> <outputItem> <outputQty>
@@ -165,9 +165,9 @@ All commands use the base `/shop` command with various subcommands. Alternative 
 
 3. **Spawn the NPC trader:**
    ```
-   /shop npc spawn MyFirstShop
+   /shop npc spawn MyFirstShop [entityRole]
    ```
-   The NPC will spawn 1.5 blocks in front of you.
+   The NPC will spawn 1.5 blocks in front of you. If you have `taleshop.npc.selectentity`, you can provide an entity role or pick one from the selection UI.
 
 4. **Place storage containers nearby:**
    - Place chests or other storage containers within 2 blocks of the NPC (default distance)
@@ -203,7 +203,7 @@ This opens an interactive UI where you can:
 
 ### Opening Shops Remotely
 
-With the `taleshop.shop.open` permission, you can open any shop remotely without needing to find and interact with the NPC:
+With the `taleshop.shop.manage` and `taleshop.shop.open` permissions, you can open any shop remotely without needing to find and interact with the NPC:
 
 ```
 /shop open <owner_name> <shop_name>
@@ -222,7 +222,7 @@ With the `taleshop.shop.open` permission, you can open any shop remotely without
 - If you're the shop owner: Opens the management UI (same as right-clicking your own NPC)
 - If you're not the owner: Opens the shopping UI (same as right-clicking someone else's NPC)
 - Shop names and owner names are case-insensitive
-- Requires `taleshop.shop.open` permission
+- Requires `taleshop.shop.manage` and `taleshop.shop.open` permissions
 
 ### Item ID Format
 

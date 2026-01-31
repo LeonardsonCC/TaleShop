@@ -89,14 +89,32 @@ All commands use `/shop` (or `/taleshop`, `/tshop`, `/barter`)
 | `/shop rename <name> <newName>` | Rename a shop |
 | `/shop delete <name>` | Delete a shop |
 
+### Full Command List
+
+| Command | Description |
+|---------|-------------|
+| `/shop create <name>` | Create a new shop |
+| `/shop rename <name> <newName>` | Rename a shop |
+| `/shop delete <name>` | Delete a shop |
+| `/shop list` | View all your shops |
+| `/shop get <name>` | View details about a shop |
+| `/shop editor` | Open the shop management interface |
+| `/shop open <owner> <shop>` | Open a shop remotely |
+| `/shop npc spawn <name> [entityRole]` | Spawn your shop's NPC trader (optional entity role) |
+| `/shop npc despawn <name>` | Remove your shop's NPC |
+| `/shop trade create <shopName> <inputItem> <inputQty> <outputItem> <outputQty>` | Create a new trade |
+| `/shop trade list <shopName>` | List trades in a shop |
+| `/shop trade update <shopName> <tradeId> <inputItem> <inputQty> <outputItem> <outputQty>` | Update a trade |
+| `/shop trade delete <shopName> <tradeId>` | Delete a trade |
+
 **Tip:** Most shop management is easier through the graphical editor (`/shop editor`) or by right-clicking your NPC!
 
 ## Permissions
 
 | Permission | What it does |
 |------------|--------------|
-| `taleshop.shop.manage` | Create and manage shops (required for shop owners) |
-| `taleshop.shop.open` | Open shops remotely with `/shop open` |
+| `taleshop.shop.manage` | Required for all `/shop` commands (base permission on the command collection) |
+| `taleshop.shop.open` | Additional permission required for `/shop open` |
 | `taleshop.npc.selectentity` | Choose custom NPC entity types when spawning traders |
 
 **Note:** Anyone can trade with NPCs - no permission needed!
@@ -135,7 +153,7 @@ Stock your chests with gold or other currency items, and set up trades where pla
 
 ### Opening Shops Remotely
 
-With the `taleshop.shop.open` permission, you can access any shop without finding the NPC:
+With the `taleshop.shop.manage` and `taleshop.shop.open` permissions, you can access any shop without finding the NPC:
 
 ```bash
 # Browse Alice's weapon shop
