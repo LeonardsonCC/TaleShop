@@ -58,15 +58,14 @@ public class TraderNpc {
         }
 
         TransformComponent transformComponent = store.getComponent(ref, TransformComponent.getComponentType());
-        HeadRotation headRotationComponent = store.getComponent(ref, HeadRotation.getComponentType());
-        if (transformComponent == null || headRotationComponent == null) {
+        if (transformComponent == null) {
             throw new IllegalStateException("Could not determine spawn position. Shop created without a trader.");
         }
 
         TransformComponent spawnTransform = new TransformComponent(
                 new Vector3d(transformComponent.getPosition()),
-                new Vector3f(headRotationComponent.getRotation()));
-        Vector3d spawnPosition = new Vector3d(spawnTransform.getPosition()).add(0.0, 0.0, 1.5);
+                new Vector3f(transformComponent.getRotation()));
+        Vector3d spawnPosition = new Vector3d(spawnTransform.getPosition());
         Vector3f spawnRotation = new Vector3f(spawnTransform.getRotation());
 
         Pair<Ref<EntityStore>, NPCEntity> npcPair = npcPlugin.spawnEntity(
