@@ -6,11 +6,8 @@ import br.com.leonardson.taleshop.shop.trade.Trade;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -41,14 +38,7 @@ public class ShopRegistry {
 
     @Nonnull
     public static Path resolveDataDirectory(@Nonnull JavaPlugin plugin) {
-        Object result = invokeFirst(plugin, "getDataFolder", "getDataDirectory", "getDataPath");
-        if (result instanceof Path path) {
-            return path;
-        }
-        if (result instanceof java.io.File file) {
-            return file.toPath();
-        }
-        return Paths.get(System.getProperty("user.dir"), "run", "mods", plugin.getName());
+        return plugin.getDataFolder().toPath();
     }
 
     private void initializeDatabase() {
@@ -617,34 +607,6 @@ public class ShopRegistry {
 
     private static String normalizeName(String name) {
         return name.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private static Object invokeFirst(Object target, String... methodNames) {
-        for (String methodName : methodNames) {
-            Method method = findMethod(target.getClass(), methodName);
-            if (method == null) {
-                continue;
-            }
-            try {
-                method.setAccessible(true);
-                return method.invoke(target);
-            } catch (IllegalAccessException | InvocationTargetException ignored) {
-                return null;
-            }
-        }
-        return null;
-    }
-
-    private static Method findMethod(Class<?> type, String name) {
-        Class<?> current = type;
-        while (current != null) {
-            try {
-                return current.getDeclaredMethod(name);
-            } catch (NoSuchMethodException ignored) {
-                current = current.getSuperclass();
-            }
-        }
-        return null;
     }
 
     public synchronized void close() {
