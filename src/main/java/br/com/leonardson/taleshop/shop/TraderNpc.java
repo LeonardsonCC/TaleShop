@@ -1,5 +1,7 @@
 package br.com.leonardson.taleshop.shop;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
@@ -17,7 +19,6 @@ import com.hypixel.hytale.server.core.entity.nameplate.Nameplate;
 import com.hypixel.hytale.server.core.modules.entity.component.DisplayNameComponent;
 import com.hypixel.hytale.server.core.modules.entity.component.HeadRotation;
 import com.hypixel.hytale.server.core.modules.entity.component.Interactable;
-import com.hypixel.hytale.server.core.modules.entity.component.Invulnerable;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.modules.interaction.Interactions;
 import com.hypixel.hytale.server.core.universe.Universe;
@@ -80,8 +81,8 @@ public class TraderNpc {
                     entityStore.putComponent(npcRef, DisplayNameComponent.getComponentType(),
                             new DisplayNameComponent(Message.raw(traderName)));
                     applyInteractable(entityStore);
-                    applyInvulnerable(entityStore, npcRef);
-                    applyFreeze(entityStore, npcRef);
+                    applyInvulnerable(npc, entityStore, npcRef);
+                    applyFreeze(npc, entityStore, npcRef);
                 });
 
         if (npcPair == null || npcPair.first() == null || !npcPair.first().isValid()) {
@@ -93,8 +94,7 @@ public class TraderNpc {
             throw new IllegalStateException("Trader spawned, but UUID was not available.");
         }
 
-        UUID uuid = uuidComponent.getUuid();
-        String traderUuid = uuid == null ? null : uuid.toString();
+        String traderUuid = resolveUuid(uuidComponent);
         if (traderUuid == null || traderUuid.isBlank()) {
             throw new IllegalStateException("Trader spawned, but UUID was not available.");
         }
@@ -137,18 +137,23 @@ public class TraderNpc {
         if (uuidComponent == null) {
             return null;
         }
-        UUID uuid = uuidComponent.getUuid();
-        return uuid == null ? null : uuid.toString();
+        Object value = invokeFirst(uuidComponent, "getUuid", "getUUID", "getUniqueId", "getId");
+        if (value instanceof UUID uuid) {
+            return uuid.toString();
+        }
+        return null;
     }
 
     public boolean despawn(@Nonnull Store<EntityStore> store) {
         boolean removed = false;
         if (this.npc != null) {
-            this.npc.despawn();
-            removed = true;
+            removed = tryInvoke(this.npc, "despawn")
+                    || tryInvoke(this.npc, "remove")
+                    || tryInvoke(this.npc, "delete")
+                    || tryInvoke(this.npc, "destroy");
         }
         if (!removed && this.ref != null) {
-            removed = removeRef(store, this.ref);
+            removed = tryRemoveRef(store, this.ref);
         }
         return removed;
     }
@@ -158,9 +163,9 @@ public class TraderNpc {
             return false;
         }
         UUID uuid = parseUuid(traderUuid);
-        Ref<EntityStore> ref = resolveRef(store, uuid);
-        if (ref != null) {
-            return removeRef(store, ref);
+        Object ref = tryResolveRef(store, uuid, traderUuid);
+        if (ref instanceof Ref<?> resolvedRef) {
+            return tryRemoveRef(store, resolvedRef);
         }
 
         Universe universe = Universe.get();
@@ -169,14 +174,14 @@ public class TraderNpc {
             for (World world : universe.getWorlds().values()) {
                 EntityStore entityStore = world.getEntityStore();
                 Store<EntityStore> worldStore = entityStore.getStore();
-                Ref<EntityStore> worldRef = resolveRef(worldStore, uuid);
-                if (worldRef == null) {
+                Object worldRef = tryResolveRef(worldStore, uuid, traderUuid);
+                if (!(worldRef instanceof Ref<?> resolvedWorldRef)) {
                     continue;
                 }
                 if (world.isInThread()) {
-                    removed = removeRef(worldStore, worldRef) || removed;
+                    removed = tryRemoveRef(worldStore, resolvedWorldRef) || removed;
                 } else {
-                    world.execute(() -> removeRef(worldStore, worldRef));
+                    world.execute(() -> tryRemoveRef(worldStore, resolvedWorldRef));
                     removed = true;
                 }
             }
@@ -184,15 +189,119 @@ public class TraderNpc {
                 return true;
             }
         }
-        return false;
+
+        NPCPlugin npcPlugin = NPCPlugin.get();
+        if (npcPlugin == null) {
+            return false;
+        }
+        return tryInvoke(npcPlugin, "despawnEntity", uuid)
+                || tryInvoke(npcPlugin, "removeEntity", uuid)
+                || tryInvoke(npcPlugin, "deleteEntity", uuid)
+                || tryInvoke(npcPlugin, "despawnEntity", traderUuid)
+                || tryInvoke(npcPlugin, "removeEntity", traderUuid)
+                || tryInvoke(npcPlugin, "deleteEntity", traderUuid)
+                || tryInvoke(npcPlugin, "despawnEntity", store, uuid)
+                || tryInvoke(npcPlugin, "removeEntity", store, uuid)
+                || tryInvoke(npcPlugin, "deleteEntity", store, uuid);
     }
 
-    private static void applyInvulnerable(Store<EntityStore> entityStore, Ref<EntityStore> npcRef) {
+    private static void applyInvulnerable(Object npc, Store<EntityStore> entityStore, Ref<EntityStore> npcRef) {
+        if (npc != null) {
+            if (tryInvoke(npc, "setInvulnerable", true)
+                    || tryInvoke(npc, "setInvincible", true)
+                    || tryInvoke(npc, "setImmortal", true)
+                    || tryInvoke(npc, "setDamageable", false)
+                    || tryInvoke(npc, "setCanBeDamaged", false)) {
+                return;
+            }
+        }
+
         applyInvulnerableComponent(entityStore, npcRef);
     }
 
-    private static void applyFreeze(Store<EntityStore> entityStore, Ref<EntityStore> npcRef) {
+    private static void applyFreeze(Object npc, Store<EntityStore> entityStore, Ref<EntityStore> npcRef) {
+        applyFreezeInternal(entityStore, npcRef);
+    }
+    
+    /**
+     * Internal method that applies all freeze-related components and states.
+     * This method can be called repeatedly to ensure the NPC stays frozen.
+     */
+    private static void applyFreezeInternal(Store<EntityStore> entityStore, Ref<EntityStore> npcRef) {
+        // 1. Apply Frozen component
         entityStore.ensureComponent(npcRef, Frozen.getComponentType());
+        
+        // 2. Set MovementStates to idle to stop the walking animation
+        setIdleMovementState(entityStore, npcRef);
+        
+        // 3. Remove StepComponent to prevent ticking when frozen
+        removeStepComponent(entityStore, npcRef);
+    }
+    
+    private static void setIdleMovementState(Store<EntityStore> entityStore, Ref<EntityStore> npcRef) {
+        try {
+            // Load the MovementStatesComponent class
+            Class<?> movementStatesComponentClass = Class.forName("com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent");
+            Object componentType = tryLoadComponentType("com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent");
+            
+            if (componentType == null) {
+                return;
+            }
+            
+            // Get the current MovementStatesComponent
+            Object movementStatesComponent = tryInvokeForResult(entityStore, "getComponent", npcRef, componentType);
+            if (movementStatesComponent == null) {
+                return;
+            }
+            
+            // Get the MovementStates object from the component
+            Method getMovementStatesMethod = findMethod(movementStatesComponentClass, "getMovementStates");
+            if (getMovementStatesMethod == null) {
+                return;
+            }
+            getMovementStatesMethod.setAccessible(true);
+            Object movementStates = getMovementStatesMethod.invoke(movementStatesComponent);
+            
+            if (movementStates == null) {
+                return;
+            }
+            
+            // Set all movement states to false except idle
+            Class<?> movementStatesClass = movementStates.getClass();
+            setField(movementStatesClass, movementStates, "idle", true);
+            setField(movementStatesClass, movementStates, "horizontalIdle", true);
+            setField(movementStatesClass, movementStates, "walking", false);
+            setField(movementStatesClass, movementStates, "running", false);
+            setField(movementStatesClass, movementStates, "sprinting", false);
+            setField(movementStatesClass, movementStates, "jumping", false);
+            setField(movementStatesClass, movementStates, "falling", false);
+            setField(movementStatesClass, movementStates, "flying", false);
+            setField(movementStatesClass, movementStates, "climbing", false);
+            setField(movementStatesClass, movementStates, "swimming", false);
+            
+        } catch (Exception ignored) {
+            // If we can't set movement states, that's okay - the Frozen component should still work
+        }
+    }
+    
+    private static void setField(Class<?> clazz, Object instance, String fieldName, boolean value) {
+        try {
+            java.lang.reflect.Field field = clazz.getField(fieldName);
+            field.setAccessible(true);
+            field.setBoolean(instance, value);
+        } catch (Exception ignored) {
+            // Field not found or can't be set
+        }
+    }
+    
+    private static void removeStepComponent(Store<EntityStore> entityStore, Ref<EntityStore> npcRef) {
+        // The StepComponent allows frozen NPCs to still tick at a special rate
+        // Removing it ensures the NPC completely stops ticking and moving
+        Object componentType = tryLoadComponentType("com.hypixel.hytale.server.npc.components.StepComponent");
+        if (componentType != null) {
+            tryInvoke(entityStore, "removeComponentIfExists", npcRef, componentType);
+            tryInvoke(entityStore, "tryRemoveComponent", npcRef, componentType);
+        }
     }
 
     public void applyInteractable(Store<EntityStore> entityStore) {
@@ -216,7 +325,38 @@ public class TraderNpc {
     }
 
     private static void applyInvulnerableComponent(Store<EntityStore> entityStore, Ref<EntityStore> npcRef) {
-        entityStore.ensureComponent(npcRef, Invulnerable.getComponentType());
+        String[] componentCandidates = new String[] {
+                "com.hypixel.hytale.server.core.modules.entity.component.Invulnerable",
+                "com.hypixel.hytale.server.core.modules.entity.component.InvulnerableComponent",
+                "com.hypixel.hytale.server.core.modules.entity.component.Invincibility",
+                "com.hypixel.hytale.server.core.modules.entity.component.Immortal",
+                "com.hypixel.hytale.server.core.modules.entity.component.ImmortalComponent"
+        };
+        for (String className : componentCandidates) {
+            Object componentType = tryLoadComponentType(className);
+            if (componentType == null) {
+                continue;
+            }
+            Object componentInstance = tryCreateComponentInstance(className);
+            if (componentInstance == null) {
+                continue;
+            }
+            if (tryPutComponent(entityStore, npcRef, componentType, componentInstance)) {
+                return;
+            }
+        }
+    }
+
+    private static String resolveUuid(UUIDComponent uuidComponent) {
+        Object value = invokeFirst(uuidComponent, "getUuid", "getUUID", "getUniqueId", "getId");
+        if (value instanceof UUID uuid) {
+            return uuid.toString();
+        }
+        if (value == null) {
+            return null;
+        }
+        String resolved = String.valueOf(value);
+        return resolved.isBlank() ? null : resolved;
     }
 
     private static UUID parseUuid(String value) {
@@ -230,22 +370,190 @@ public class TraderNpc {
         }
     }
 
-    private static Ref<EntityStore> resolveRef(Store<EntityStore> store, UUID uuid) {
-        if (uuid == null) {
-            return null;
+    private static Object tryResolveRef(Store<EntityStore> store, UUID uuid, String uuidText) {
+        if (uuid != null) {
+            EntityStore entityStore = store.getExternalData();
+            if (entityStore != null) {
+                Ref<EntityStore> direct = entityStore.getRefFromUUID(uuid);
+                if (direct != null) {
+                    return direct;
+                }
+            }
         }
-        EntityStore entityStore = store.getExternalData();
-        if (entityStore == null) {
-            return null;
+        if (uuid != null) {
+            Object ref = tryInvokeForResult(store, "getEntity", uuid);
+            if (ref != null) {
+                return ref;
+            }
+            ref = tryInvokeForResult(store, "getEntityRef", uuid);
+            if (ref != null) {
+                return ref;
+            }
         }
-        return entityStore.getRefFromUUID(uuid);
+        if (uuidText != null && !uuidText.isBlank()) {
+            Object ref = tryInvokeForResult(store, "getEntity", uuidText);
+            if (ref != null) {
+                return ref;
+            }
+            return tryInvokeForResult(store, "getEntityRef", uuidText);
+        }
+        return null;
     }
 
-    private static boolean removeRef(Store<EntityStore> store, Ref<?> ref) {
-        if (ref == null || !ref.isValid()) {
+    private static boolean tryRemoveRef(Store<EntityStore> store, Ref<?> ref) {
+        if (tryInvoke(store, "removeEntity", ref, RemoveReason.REMOVE)
+                || tryInvoke(store, "despawnEntity", ref)
+                || tryInvoke(store, "removeEntity", ref)
+                || tryInvoke(store, "deleteEntity", ref)
+                || tryInvoke(store, "destroyEntity", ref)) {
+            return true;
+        }
+
+        EntityStore entityStore = store.getExternalData();
+        return entityStore != null && (tryInvoke(entityStore, "removeEntity", ref, RemoveReason.REMOVE)
+                || tryInvoke(entityStore, "despawnEntity", ref)
+                || tryInvoke(entityStore, "removeEntity", ref)
+                || tryInvoke(entityStore, "deleteEntity", ref)
+                || tryInvoke(entityStore, "destroyEntity", ref));
+    }
+
+    private static Object tryLoadComponentType(String className) {
+        try {
+            Class<?> componentClass = Class.forName(className);
+            Method method = findMethod(componentClass, "getComponentType");
+            if (method == null) {
+                return null;
+            }
+            method.setAccessible(true);
+            return method.invoke(null);
+        } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException ignored) {
+            return null;
+        }
+    }
+
+    private static Object tryCreateComponentInstance(String className) {
+        try {
+            Class<?> componentClass = Class.forName(className);
+            try {
+                Object instance = componentClass.getField("INSTANCE").get(null);
+                if (instance != null) {
+                    return instance;
+                }
+            } catch (NoSuchFieldException | IllegalAccessException ignored) {
+                // fall through
+            }
+            return componentClass.getDeclaredConstructor().newInstance();
+        } catch (ReflectiveOperationException ignored) {
+            return null;
+        }
+    }
+
+    private static boolean tryPutComponent(Store<EntityStore> store, Ref<EntityStore> ref, Object componentType,
+            Object component) {
+        return tryInvoke(store, "putComponent", ref, componentType, component);
+    }
+
+    private static Object tryInvokeForResult(Object target, String methodName, Object... args) {
+        if (target == null) {
+            return null;
+        }
+        Method method = findMethodByArgs(target.getClass(), methodName, args);
+        if (method == null) {
+            return null;
+        }
+        try {
+            method.setAccessible(true);
+            return method.invoke(target, args);
+        } catch (IllegalAccessException | InvocationTargetException ignored) {
+            return null;
+        }
+    }
+
+    private static boolean tryInvoke(Object target, String methodName, Object... args) {
+        if (target == null) {
             return false;
         }
-        store.removeEntity(ref, RemoveReason.REMOVE);
-        return true;
+        Method method = findMethodByArgs(target.getClass(), methodName, args);
+        if (method == null) {
+            return false;
+        }
+        try {
+            method.setAccessible(true);
+            method.invoke(target, args);
+            return true;
+        } catch (IllegalAccessException | InvocationTargetException ignored) {
+            return false;
+        }
+    }
+
+    private static Method findMethodByArgs(Class<?> type, String name, Object... args) {
+        Class<?> current = type;
+        while (current != null) {
+            for (Method method : current.getDeclaredMethods()) {
+                if (!method.getName().equals(name)) {
+                    continue;
+                }
+                Class<?>[] params = method.getParameterTypes();
+                if (params.length != args.length) {
+                    continue;
+                }
+                boolean matches = true;
+                for (int i = 0; i < params.length; i++) {
+                    Object arg = args[i];
+                    if (arg == null) {
+                        continue;
+                    }
+                    if (!params[i].isAssignableFrom(arg.getClass())
+                            && !(params[i].isPrimitive() && isWrapper(params[i], arg.getClass()))) {
+                        matches = false;
+                        break;
+                    }
+                }
+                if (matches) {
+                    return method;
+                }
+            }
+            current = current.getSuperclass();
+        }
+        return null;
+    }
+
+    private static boolean isWrapper(Class<?> primitiveType, Class<?> wrapperType) {
+        return (primitiveType == boolean.class && wrapperType == Boolean.class)
+                || (primitiveType == int.class && wrapperType == Integer.class)
+                || (primitiveType == long.class && wrapperType == Long.class)
+                || (primitiveType == double.class && wrapperType == Double.class)
+                || (primitiveType == float.class && wrapperType == Float.class)
+                || (primitiveType == short.class && wrapperType == Short.class)
+                || (primitiveType == byte.class && wrapperType == Byte.class)
+                || (primitiveType == char.class && wrapperType == Character.class);
+    }
+
+    private static Object invokeFirst(Object target, String... methodNames) {
+        for (String methodName : methodNames) {
+            Method method = findMethod(target.getClass(), methodName);
+            if (method == null) {
+                continue;
+            }
+            try {
+                method.setAccessible(true);
+                return method.invoke(target);
+            } catch (IllegalAccessException | InvocationTargetException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static Method findMethod(Class<?> type, String name) {
+        Class<?> current = type;
+        while (current != null) {
+            try {
+                return current.getDeclaredMethod(name);
+            } catch (NoSuchMethodException ignored) {
+                current = current.getSuperclass();
+            }
+        }
+        return null;
     }
 }

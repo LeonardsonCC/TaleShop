@@ -34,6 +34,7 @@ public class PluginConfigManager {
             try (Reader reader = Files.newBufferedReader(configPath)) {
                 ConfigData data = GSON.fromJson(reader, ConfigData.class);
                 if (data != null) {
+                    config.setStorageBackend(parseBackend(data.StorageBackend));
                     config.setStorageDistanceMode(parseMode(data.StorageDistanceMode));
                     config.setFixedStorageDistance(data.FixedStorageDistance);
                     LOGGER.atInfo().log("Loaded configuration from: %s", configPath);
@@ -54,6 +55,7 @@ public class PluginConfigManager {
             Files.createDirectories(configPath.getParent());
             
             ConfigData data = new ConfigData();
+            data.StorageBackend = config.getStorageBackend().name();
             data.StorageDistanceMode = config.getStorageDistanceMode().name();
             data.FixedStorageDistance = config.getFixedStorageDistance();
             
@@ -79,9 +81,18 @@ public class PluginConfigManager {
             return PluginConfig.StorageDistanceMode.FIXED;
         }
     }
+
+    private PluginConfig.StorageBackend parseBackend(String value) {
+        try {
+            return PluginConfig.StorageBackend.valueOf(value.toUpperCase());
+        } catch (Exception e) {
+            return PluginConfig.StorageBackend.JSON;
+        }
+    }
     
     // Internal class for JSON serialization
     private static class ConfigData {
+        String StorageBackend = "JSON";
         String StorageDistanceMode = "FIXED";
         int FixedStorageDistance = 2;
     }
