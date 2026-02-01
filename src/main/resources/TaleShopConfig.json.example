@@ -1,5 +1,4 @@
 {
-  "StorageBackend": "JSON",
   "StorageDistanceMode": "FIXED",
   "FixedStorageDistance": 2
 }
