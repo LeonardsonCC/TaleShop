@@ -45,10 +45,9 @@ public class JsonShopStorage implements ShopStorage {
                     continue;
                 }
                 String ownerId = shop.ownerId;
-                String shopName = normalizeName(shop.name);
-                shop.name = shopName;
+                String shopKey = normalizeName(shop.name);
                 shopsByOwner.computeIfAbsent(ownerId, key -> new HashMap<>())
-                    .put(shopName, shop);
+                    .put(shopKey, shop);
             }
         } catch (IOException e) {
             throw new RuntimeException("Failed to load JSON storage", e);
@@ -81,9 +80,9 @@ public class JsonShopStorage implements ShopStorage {
             throw new IllegalArgumentException("Shop name is required.");
         }
 
-        String normalizedName = normalizeName(trimmedName);
+        String shopKey = normalizeName(trimmedName);
         Map<String, JsonShop> ownerShops = shopsByOwner.computeIfAbsent(ownerId, key -> new HashMap<>());
-        JsonShop existing = ownerShops.get(normalizedName);
+        JsonShop existing = ownerShops.get(shopKey);
         if (existing != null) {
             return toShop(existing);
         }
@@ -91,10 +90,10 @@ public class JsonShopStorage implements ShopStorage {
         JsonShop shop = new JsonShop();
         shop.ownerId = ownerId;
         shop.ownerName = ownerName;
-        shop.name = normalizedName;
+        shop.name = trimmedName;
         shop.traderUuid = "";
         shop.trades = new ArrayList<>();
-        ownerShops.put(normalizedName, shop);
+        ownerShops.put(shopKey, shop);
         save();
 
         return toShop(shop);
@@ -122,7 +121,7 @@ public class JsonShopStorage implements ShopStorage {
         }
 
         JsonShop shop = ownerShops.remove(currentKey);
-        shop.name = newKey;
+        shop.name = trimmedNew;
         ownerShops.put(newKey, shop);
         save();
 

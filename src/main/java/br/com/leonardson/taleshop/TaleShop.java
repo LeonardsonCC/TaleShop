@@ -52,9 +52,6 @@ public class TaleShop extends JavaPlugin {
         shopRegistry = new ShopRegistry(ShopRegistry.resolveDataDirectory(this), cfg);
         // Commands
         this.getCommandRegistry().registerCommand(new ShopCommands(shopRegistry));
-//        this.getCommandRegistry().registerCommand(new ExampleCommand(this.getName(), this.getManifest().getVersion().toString()));
-//        this.getCommandRegistry().registerCommand(new InventoryGridCommand());
-//        this.getCommandRegistry().registerCommand(new SpawnTraderCommand());
 
         // Interactions
         this.getCodecRegistry(Interaction.CODEC)
