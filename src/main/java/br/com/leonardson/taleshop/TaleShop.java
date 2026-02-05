@@ -45,11 +45,10 @@ public class TaleShop extends JavaPlugin {
         
         // Log configuration
         PluginConfig cfg = configManager.getConfig();
-        LOGGER.atInfo().log("Storage Backend: %s", cfg.getStorageBackend());
         LOGGER.atInfo().log("Storage Distance Mode: %s", cfg.getStorageDistanceMode());
         LOGGER.atInfo().log("Fixed Storage Distance: %d blocks", cfg.getFixedStorageDistance());
         
-        shopRegistry = new ShopRegistry(ShopRegistry.resolveDataDirectory(this), cfg);
+        shopRegistry = new ShopRegistry(ShopRegistry.resolveDataDirectory(this));
         // Commands
         this.getCommandRegistry().registerCommand(new ShopCommands(shopRegistry));
 
