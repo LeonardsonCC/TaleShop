@@ -16,6 +16,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.core.entity.UUIDComponent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import br.com.leonardson.taleshop.TaleShop;
+import br.com.leonardson.taleshop.permission.PermissionUtil;
 import br.com.leonardson.taleshop.player.PlayerIdentity;
 import br.com.leonardson.taleshop.shop.Shop;
 import br.com.leonardson.taleshop.shop.ShopRegistry;
@@ -92,7 +93,9 @@ public class TraderMessageInteraction extends SimpleInstantInteraction {
         }
 
         String playerOwnerId = PlayerIdentity.resolveOwnerId(playerComponent);
-        if (!shop.ownerId().equals(playerOwnerId)) {
+        boolean canManage = shop.ownerId().equals(playerOwnerId)
+            || (shop.isAdmin() && PermissionUtil.hasAdminManagePermission(playerComponent));
+        if (!canManage) {
             playerComponent.getPageManager().openCustomPage(ref, store, new ShopBuyerPage(playerRef, shop.ownerId(), shop.name()));
             return;
         }

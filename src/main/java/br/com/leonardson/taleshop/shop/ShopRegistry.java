@@ -43,7 +43,17 @@ public class ShopRegistry {
 
     @Nonnull
     public synchronized Shop createShop(@Nonnull String ownerId, @Nonnull String ownerName, @Nonnull String name) {
-        return storage.createShop(ownerId, ownerName, name);
+        return storage.createShop(ownerId, ownerName, name, false);
+    }
+
+    @Nonnull
+    public synchronized Shop createShop(
+        @Nonnull String ownerId,
+        @Nonnull String ownerName,
+        @Nonnull String name,
+        boolean isAdmin
+    ) {
+        return storage.createShop(ownerId, ownerName, name, isAdmin);
     }
 
     @Nonnull

@@ -8,7 +8,12 @@ import java.util.List;
 
 public interface ShopStorage {
     @Nonnull
-    Shop createShop(@Nonnull String ownerId, @Nonnull String ownerName, @Nonnull String name);
+    default Shop createShop(@Nonnull String ownerId, @Nonnull String ownerName, @Nonnull String name) {
+        return createShop(ownerId, ownerName, name, false);
+    }
+
+    @Nonnull
+    Shop createShop(@Nonnull String ownerId, @Nonnull String ownerName, @Nonnull String name, boolean isAdmin);
 
     @Nonnull
     Shop renameShop(@Nonnull String ownerId, @Nonnull String currentName, @Nonnull String newName);

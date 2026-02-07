@@ -1,7 +1,9 @@
 package br.com.leonardson.taleshop.shop.ui;
 
 import br.com.leonardson.taleshop.TaleShop;
+import br.com.leonardson.taleshop.permission.PermissionUtil;
 import br.com.leonardson.taleshop.player.PlayerIdentity;
+import br.com.leonardson.taleshop.shop.AdminShopAccess;
 import br.com.leonardson.taleshop.shop.Shop;
 import br.com.leonardson.taleshop.shop.ShopRegistry;
 import com.hypixel.hytale.component.Ref;
@@ -29,17 +31,29 @@ public class ShopEditorPage extends InteractiveCustomUIPage<ShopEditorPage.ShopE
     private final String currentShopName; // null for create mode, non-null for edit mode
     private final boolean isEditMode;
     private final boolean returnToTrader; // If true, return to TraderMenuPage after save
+    private final boolean createAdminShop;
 
     public ShopEditorPage(@Nonnull PlayerRef playerRef, @Nonnull String ownerId, @Nullable String currentShopName) {
-        this(playerRef, ownerId, currentShopName, false);
+        this(playerRef, ownerId, currentShopName, false, false);
     }
 
     public ShopEditorPage(@Nonnull PlayerRef playerRef, @Nonnull String ownerId, @Nullable String currentShopName, boolean returnToTrader) {
+        this(playerRef, ownerId, currentShopName, returnToTrader, false);
+    }
+
+    public ShopEditorPage(
+        @Nonnull PlayerRef playerRef,
+        @Nonnull String ownerId,
+        @Nullable String currentShopName,
+        boolean returnToTrader,
+        boolean createAdminShop
+    ) {
         super(playerRef, CustomPageLifetime.CanDismiss, ShopEditorEventData.CODEC);
         this.ownerId = ownerId;
         this.currentShopName = currentShopName;
         this.isEditMode = currentShopName != null && !currentShopName.isBlank();
         this.returnToTrader = returnToTrader;
+        this.createAdminShop = createAdminShop;
     }
 
     @Override
@@ -66,7 +80,7 @@ public class ShopEditorPage extends InteractiveCustomUIPage<ShopEditorPage.ShopE
         );
 
         // Set title based on mode
-        String title = isEditMode ? "Rename Shop" : "Create New Shop";
+        String title = isEditMode ? "Rename Shop" : (createAdminShop ? "Create Admin Shop" : "Create New Shop");
         commandBuilder.set("#TitleLabel.Text", title);
         
         // Pre-fill shop name in edit mode
@@ -97,7 +111,7 @@ public class ShopEditorPage extends InteractiveCustomUIPage<ShopEditorPage.ShopE
                 // Return to trader menu if we came from there
                 player.getPageManager().openCustomPage(ref, store, new TraderMenuPage(playerRef, ownerId, currentShopName));
             } else {
-                player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId));
+                player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId, createAdminShop));
             }
             return;
         }
@@ -129,13 +143,24 @@ public class ShopEditorPage extends InteractiveCustomUIPage<ShopEditorPage.ShopE
 
         try {
             if (isEditMode) {
+                Shop existing = registry.getShop(ownerId, currentShopName);
+                if (existing.isAdmin() && !PermissionUtil.hasAdminManagePermission(player)) {
+                    player.sendMessage(Message.raw("You do not have permission to edit this shop."));
+                    return;
+                }
                 // Rename existing shop
                 registry.renameShop(ownerId, currentShopName, trimmedName);
                 player.sendMessage(Message.raw("Shop renamed to '" + trimmedName + "'."));
             } else {
+                if (createAdminShop && !PermissionUtil.hasAdminManagePermission(player)) {
+                    player.sendMessage(Message.raw("You do not have permission to create admin shops."));
+                    return;
+                }
                 // Create new shop
-                String ownerName = PlayerIdentity.resolveDisplayName(player);
-                Shop shop = registry.createShop(ownerId, ownerName, trimmedName);
+                String ownerName = createAdminShop
+                    ? AdminShopAccess.OWNER_NAME
+                    : PlayerIdentity.resolveDisplayName(player);
+                Shop shop = registry.createShop(ownerId, ownerName, trimmedName, createAdminShop);
                 player.sendMessage(Message.raw("Shop '" + shop.name() + "' created successfully."));
             }
             
@@ -145,7 +170,7 @@ public class ShopEditorPage extends InteractiveCustomUIPage<ShopEditorPage.ShopE
                 player.getPageManager().openCustomPage(ref, store, new TraderMenuPage(playerRef, ownerId, trimmedName));
             } else {
                 // Return to shop list
-                player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId));
+                player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId, createAdminShop));
             }
         } catch (IllegalArgumentException ex) {
             player.sendMessage(Message.raw("Error: " + ex.getMessage()));

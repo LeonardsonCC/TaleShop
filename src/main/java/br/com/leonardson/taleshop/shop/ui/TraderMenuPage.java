@@ -1,6 +1,7 @@
 package br.com.leonardson.taleshop.shop.ui;
 
 import br.com.leonardson.taleshop.TaleShop;
+import br.com.leonardson.taleshop.permission.PermissionUtil;
 import br.com.leonardson.taleshop.player.PlayerIdentity;
 import br.com.leonardson.taleshop.shop.Shop;
 import br.com.leonardson.taleshop.shop.ShopRegistry;
@@ -91,8 +92,18 @@ public class TraderMenuPage extends InteractiveCustomUIPage<TraderMenuPage.MenuE
             return;
         }
 
+        ShopRegistry registry = resolveRegistry();
+        Shop shop = null;
+        if (registry != null) {
+            try {
+                shop = registry.getShop(ownerId, shopName);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
         String playerOwnerId = PlayerIdentity.resolveOwnerId(player);
-        if (!ownerId.equals(playerOwnerId)) {
+        boolean canManage = ownerId.equals(playerOwnerId)
+            || (shop != null && shop.isAdmin() && PermissionUtil.hasAdminManagePermission(player));
+        if (!canManage) {
             player.getPageManager().openCustomPage(ref, store, new ShopBuyerPage(playerRef, ownerId, shopName));
             return;
         }
