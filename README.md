@@ -10,7 +10,8 @@ A Hytale server plugin that enables players to create and manage custom trading 
 - **Custom Trades**: Define item exchanges with configurable input/output items and quantities
 - **Storage Distance Control**: Configure search radius for storage containers
 - **Multi-Shop Support**: Create multiple shops per player with no hardcoded limit
-- **Persistent Data**: All shops and trades saved in SQLite database
+- **Admin Shops**: Create server-managed shops with infinite stock and no storage requirements
+- **Persistent Data**: JSON by default, SQLite optional
 - **Interactive UI**: Full graphical interface for shop and trade management
 
 ## Requirements
@@ -43,6 +44,7 @@ The compiled JAR will be available at `build/libs/TaleShop-1.0.1.jar`
 **Default Configuration:**
 ```json
 {
+  "StorageBackend": "JSON",
   "StorageDistanceMode": "FIXED",
   "FixedStorageDistance": 2
 }
@@ -52,6 +54,7 @@ The compiled JAR will be available at `build/libs/TaleShop-1.0.1.jar`
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
+| `StorageBackend` | String | `"JSON"` | Storage backend: `"JSON"` or `"SQLITE"` |
 | `StorageDistanceMode` | String | `"FIXED"` | Storage search mode: `"FIXED"` or `"WORKBENCH"` |
 | `FixedStorageDistance` | Integer | `2` | Radius in blocks to search for storage (minimum: 1) |
 
@@ -88,6 +91,7 @@ The compiled JAR will be available at `build/libs/TaleShop-1.0.1.jar`
 | Permission | Description |
 |------------|-------------|
 | `taleshop.shop.manage` | Required for all `/shop` commands (base permission on the command collection) |
+| `taleshop.admin.manage` | Manage admin shops and edit admin-owned NPCs |
 | `taleshop.shop.open` | Additional permission required for `/shop open` |
 | `taleshop.npc.selectentity` | Allows selecting custom entity types when spawning NPCs (opens entity selection UI) |
 
@@ -109,6 +113,7 @@ All commands use the base `/shop` command with various subcommands. Alternative 
 | `/shop list` | List all your shops with trade counts | `/shop list` | `taleshop.shop.manage` |
 | `/shop get <name>` | Get detailed information about a shop | `/shop get MyShop` | `taleshop.shop.manage` |
 | `/shop editor` | Open the graphical shop management UI | `/shop editor` | `taleshop.shop.manage` |
+| `/shop admin` | Open the admin shop management UI | `/shop admin` | `taleshop.admin.manage` |
 | `/shop open <owner> <shop>` | Open a shop remotely without NPC interaction | `/shop open PlayerName MyShop` | `taleshop.shop.manage`, `taleshop.shop.open` |
 
 ### NPC Management
@@ -201,6 +206,20 @@ This opens an interactive UI where you can:
 - Manage trades visually
 - Configure shop settings
 
+### Admin Shops
+
+Admin shops are server-managed shops with infinite stock and no storage requirements. Only players with
+`taleshop.admin.manage` can create or edit admin shops.
+
+```
+/shop admin
+```
+
+In admin shops:
+- Stock is infinite (no nearby storage required)
+- Input items are removed from the buyer
+- Output items are always available
+
 ### Opening Shops Remotely
 
 With the `taleshop.shop.manage` and `taleshop.shop.open` permissions, you can open any shop remotely without needing to find and interact with the NPC:
@@ -251,9 +270,12 @@ Check your server's item registry for exact IDs.
 
 ### Data Storage
 
-All data is stored in an SQLite database at `run/mods/Leonardson_TaleShop/shops.db`
+Storage backend is configurable in `TaleShopConfig.json`:
 
-**Database Tables:**
+- `JSON` (default): `run/mods/Leonardson_TaleShop/shops.json`
+- `SQLITE`: `run/mods/Leonardson_TaleShop/shops.db`
+
+**Database Tables (when using SQLITE):**
 - **shops** - Stores shop information (owner, name, trader UUID)
 - **trades** - Stores trade definitions with foreign key relationships
 

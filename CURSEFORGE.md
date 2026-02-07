@@ -14,7 +14,8 @@ TaleShop allows players to set up custom trading shops with interactive NPC merc
 - **Automatic Inventory** - Your shop pulls items from nearby chests automatically
 - **Easy Management** - Use commands or a graphical UI to manage your shops
 - **Remote Access** - Open any shop from anywhere without finding the NPC
-- **Persistent Data** - All shops and trades are saved automatically
+- **Admin Shops** - Create server-managed shops with infinite stock and no storage requirements
+- **Persistent Data** - JSON by default, SQLite optional
 
 ## How It Works
 
@@ -28,6 +29,9 @@ TaleShop allows players to set up custom trading shops with interactive NPC merc
 You can also manage your shop by **right-clicking your own NPC** to access the management interface. Other players who click your NPC will see the shopping interface.
 
 The plugin automatically manages inventory - when players buy from your shop, items come from your chests. When they sell to you, items go into your chests.
+
+Admin shops work differently: they have infinite stock and do not require nearby storage. Buyers still pay the input
+items, but output items are always available.
 
 ## Getting Started
 
@@ -78,6 +82,7 @@ All commands use `/shop` (or `/taleshop`, `/tshop`, `/barter`)
 | `/shop create <name>` | Create a new shop |
 | `/shop editor` | Open the shop management interface |
 | `/shop list` | View all your shops |
+| `/shop admin` | Open the admin shop management interface |
 | `/shop npc spawn <name> [entityRole]` | Spawn your shop's NPC trader (optionally specify entity type) |
 | `/shop npc despawn <name>` | Remove your shop's NPC |
 | `/shop open <owner> <shop>` | Open any shop remotely |
@@ -99,6 +104,7 @@ All commands use `/shop` (or `/taleshop`, `/tshop`, `/barter`)
 | `/shop list` | View all your shops |
 | `/shop get <name>` | View details about a shop |
 | `/shop editor` | Open the shop management interface |
+| `/shop admin` | Open the admin shop management interface |
 | `/shop open <owner> <shop>` | Open a shop remotely |
 | `/shop npc spawn <name> [entityRole]` | Spawn your shop's NPC trader (optional entity role) |
 | `/shop npc despawn <name>` | Remove your shop's NPC |
@@ -114,6 +120,7 @@ All commands use `/shop` (or `/taleshop`, `/tshop`, `/barter`)
 | Permission | What it does |
 |------------|--------------|
 | `taleshop.shop.manage` | Required for all `/shop` commands (base permission on the command collection) |
+| `taleshop.admin.manage` | Manage admin shops and edit admin-owned NPCs |
 | `taleshop.shop.open` | Additional permission required for `/shop open` |
 | `taleshop.npc.selectentity` | Choose custom NPC entity types when spawning traders |
 
@@ -171,11 +178,13 @@ The plugin creates a config file at `run/mods/Leonardson_TaleShop/TaleShopConfig
 
 ```json
 {
+  "StorageBackend": "JSON",
   "StorageDistanceMode": "FIXED",
   "FixedStorageDistance": 2
 }
 ```
 
+- **StorageBackend**: `JSON` (default) or `SQLITE`
 - **StorageDistanceMode**: `FIXED` (use configured distance) or `WORKBENCH` (match game's crafting bench distance)
 - **FixedStorageDistance**: How many blocks away from the NPC to search for chests (default: 2)
 
@@ -204,6 +213,9 @@ A: Yes! Create as many as you want.
 
 **Q: What happens if my chests are empty?**  
 A: The trade shows as "Out of Stock" until you restock
+
+**Q: Do admin shops need storage chests?**  
+A: No. Admin shops have infinite stock and ignore storage containers.
 
 **Q: Can other players steal from my chests?**  
 A: The plugin only manages trade transactions - use your server's protection plugins for chest security
