@@ -9,7 +9,7 @@ val javaVersion = 25
 
 repositories {
     mavenCentral()
-    maven("https://maven.hytale-modding.info/releases") {
+    maven("https://maven.hytale-mods.dev/releases") {
         name = "HytaleModdingReleases"
     }
 }
@@ -17,7 +17,7 @@ repositories {
 dependencies {
     compileOnly(libs.jetbrains.annotations)
     compileOnly(libs.jspecify)
-    implementation("org.xerial:sqlite-jdbc:3.47.1.0")
+    implementation("org.xerial:sqlite-jdbc:3.51.2.0")
 }
 
 hytale {
@@ -87,10 +87,11 @@ publishing {
 }
 
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
+val runningOnCI = providers.environmentVariable("CI").orNull.toBoolean()
 idea {
     module {
-        isDownloadSources = true
-        isDownloadJavadoc = true
+        isDownloadSources = !runningOnCI
+        isDownloadJavadoc = !runningOnCI
     }
 }
 
