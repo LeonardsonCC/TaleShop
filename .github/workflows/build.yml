@@ -28,3 +28,10 @@ jobs:
         env:
           CI: true
           COMMIT_SHA_SHORT: ${{ github.sha }}
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TaleShop-${{ github.event.pull_request.number }}-${{ github.sha }}
+          path: build/libs/*.jar
+          if-no-files-found: error
