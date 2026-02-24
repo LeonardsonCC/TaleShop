@@ -9,6 +9,8 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
+import com.hypixel.hytale.logger.HytaleLogger;
+import com.hypixel.hytale.server.core.modules.item.ItemModule;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.server.core.Message;
@@ -31,13 +33,12 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.TradeEventData> {
+    private static final HytaleLogger LOGGER = HytaleLogger.forEnclosingClass();
     private static final String PAGE_PATH = "Pages/InventorySelectionPage.ui";
     private static final int NO_SELECTION = -1;
     private static final int INVENTORY_GRID_COLUMNS = 9;
     private static final int INVENTORY_GRID_ROWS = 10;
     private static final int INVENTORY_GRID_CAPACITY = INVENTORY_GRID_COLUMNS * INVENTORY_GRID_ROWS;
-    private static final Value<PatchStyle> FIRST_SELECTION_OVERLAY = Value.ref(PAGE_PATH, "SelectedRedOverlay");
-    private static final Value<PatchStyle> SECOND_SELECTION_OVERLAY = Value.ref(PAGE_PATH, "SelectedGreenOverlay");
     private final String ownerId;
     private final String shopName;
     private final Integer tradeId;
@@ -170,7 +171,7 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
             firstSelectedSlot = secondSelectedSlot;
             inputItemId = outputItemId;
             inputQuantity = outputQuantity;
-            
+
             secondSelectedSlot = slotIndex;
             outputItemId = getSelectionItemId(player.getInventory(), secondSelectedSlot);
             outputQuantity = getSelectionQuantity(player.getInventory(), secondSelectedSlot);
@@ -200,11 +201,8 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
             return;
         }
 
-        Inventory inventory = player.getInventory();
         inputItemId = trade.inputItemId();
         outputItemId = trade.outputItemId();
-        firstSelectedSlot = findSlotByItemId(inventory, trade.inputItemId());
-        secondSelectedSlot = findSlotByItemId(inventory, trade.outputItemId());
         inputQuantity = trade.inputQuantity();
         outputQuantity = trade.outputQuantity();
         initialized = true;
@@ -250,13 +248,6 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
                 }
             }
             gridSlot.setActivatable(true);
-
-            if (slot == firstSelectedSlot) {
-                gridSlot.setOverlay(FIRST_SELECTION_OVERLAY);
-            } else if (slot == secondSelectedSlot) {
-                gridSlot.setOverlay(SECOND_SELECTION_OVERLAY);
-            }
-
             slots[slot] = gridSlot;
         }
 
@@ -274,7 +265,6 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
                 }
             }
         } else if (fallbackItemId != null && !fallbackItemId.isBlank()) {
-            // If no slot selected but we have a fallback itemId (from editing), create item from it
             ItemStack itemStack = createItemStack(fallbackItemId, fallbackQuantity);
             if (itemStack != null && isRenderableItem(itemStack)) {
                 slot = new ItemGridSlot(toDisplayItem(itemStack));
@@ -330,19 +320,25 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
         if (itemId == null || itemId.isBlank()) {
             return false;
         }
-        return itemStack.getQuantity() > 0;
+        if (itemStack.getQuantity() <= 0) {
+            return false;
+        }
+        // Skip items not registered in the Hytale item registry (e.g. state-based items like
+        // "*Container_Bucket_State_Filled_Water", or items from removed mods). Sending unregistered
+        // item IDs to the client causes a NullReferenceException during rendering.
+        if (!ItemModule.exists(itemId)) {
+            return false;
+        }
+        return true;
     }
 
     private ItemStack toDisplayItem(@Nonnull ItemStack itemStack) {
         if (!isRenderableItem(itemStack)) {
             return ItemStack.EMPTY;
         }
-        ItemStack display = new ItemStack(itemStack.getItemId(), itemStack.getQuantity());
-        double maxDurability = itemStack.getMaxDurability();
-        if (maxDurability > 0) {
-            display = display.withMaxDurability(maxDurability).withDurability(itemStack.getDurability());
-        }
-        return display;
+        // Only copy ID and quantity. Copying durability/enchantments via SDK methods produces a
+        // partially-constructed ItemStack that crashes the client when rendering quality backgrounds.
+        return new ItemStack(itemStack.getItemId(), itemStack.getQuantity());
     }
 
     private void handleAction(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store, @Nonnull String action) {

@@ -5,6 +5,7 @@ import br.com.leonardson.taleshop.shop.ShopRegistry;
 import br.com.leonardson.taleshop.shop.ui.ShopBuyerPage;
 import br.com.leonardson.taleshop.shop.ui.TraderMenuPage;
 import br.com.leonardson.taleshop.player.PlayerIdentity;
+import br.com.leonardson.taleshop.permission.PermissionUtil;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.Message;
@@ -53,8 +54,10 @@ public class OpenShopCommand extends AbstractShopCommand {
             return;
         }
 
-        // Check if the current player is the shop owner
-        if (targetShop.ownerId().equals(currentPlayerId)) {
+        // Check if the current player can manage the shop
+        boolean canManage = targetShop.ownerId().equals(currentPlayerId)
+            || (targetShop.isAdmin() && PermissionUtil.hasAdminManagePermission(player));
+        if (canManage) {
             // Owner opens the trader menu (management UI)
             player.getPageManager().openCustomPage(ref, store, new TraderMenuPage(playerRef, targetShop.ownerId(), targetShop.name()));
         } else {

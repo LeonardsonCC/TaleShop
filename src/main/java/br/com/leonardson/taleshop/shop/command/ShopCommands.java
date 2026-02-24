@@ -19,6 +19,7 @@ public class ShopCommands extends AbstractCommandCollection {
     addSubCommand(new GetShopCommand(shopRegistry));
     addSubCommand(new ListShopCommand(shopRegistry));
     addSubCommand(new ShopEditorCommand(shopRegistry));
+    addSubCommand(new AdminShopEditorCommand(shopRegistry));
     addSubCommand(new OpenShopCommand(shopRegistry));
     addSubCommand(new NpcCommands(shopRegistry));
 

@@ -71,7 +71,12 @@ public class JsonShopStorage implements ShopStorage {
 
     @Nonnull
     @Override
-    public synchronized Shop createShop(@Nonnull String ownerId, @Nonnull String ownerName, @Nonnull String name) {
+    public synchronized Shop createShop(
+        @Nonnull String ownerId,
+        @Nonnull String ownerName,
+        @Nonnull String name,
+        boolean isAdmin
+    ) {
         if (ownerId.isBlank()) {
             throw new IllegalArgumentException("Owner id is required.");
         }
@@ -92,6 +97,7 @@ public class JsonShopStorage implements ShopStorage {
         shop.ownerName = ownerName;
         shop.name = trimmedName;
         shop.traderUuid = "";
+        shop.admin = isAdmin;
         shop.trades = new ArrayList<>();
         ownerShops.put(shopKey, shop);
         save();
@@ -308,7 +314,14 @@ public class JsonShopStorage implements ShopStorage {
             }
         }
         trades.sort(Comparator.comparingInt(Trade::id));
-        return new Shop(shop.ownerId, shop.ownerName, shop.name, trades, shop.traderUuid == null ? "" : shop.traderUuid);
+        return new Shop(
+            shop.ownerId,
+            shop.ownerName,
+            shop.name,
+            trades,
+            shop.traderUuid == null ? "" : shop.traderUuid,
+            shop.admin
+        );
     }
 
     private int nextTradeId(List<JsonTrade> trades) {
@@ -359,6 +372,7 @@ public class JsonShopStorage implements ShopStorage {
         String ownerName;
         String name;
         String traderUuid;
+        boolean admin;
         List<JsonTrade> trades = new ArrayList<>();
     }
 

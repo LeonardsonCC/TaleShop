@@ -30,10 +30,16 @@ public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListE
     private static final String ROW_TEMPLATE_PATH = "Pages/ShopRow.ui";
     
     private final String ownerId;
+    private final boolean adminList;
 
     public ShopListPage(@Nonnull PlayerRef playerRef, @Nonnull String ownerId) {
+        this(playerRef, ownerId, false);
+    }
+
+    public ShopListPage(@Nonnull PlayerRef playerRef, @Nonnull String ownerId, boolean adminList) {
         super(playerRef, CustomPageLifetime.CanDismiss, ShopListEventData.CODEC);
         this.ownerId = ownerId;
+        this.adminList = adminList;
     }
 
     @Override
@@ -116,7 +122,11 @@ public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListE
         }
 
         if ("Create".equals(data.action)) {
-            player.getPageManager().openCustomPage(ref, store, new ShopEditorPage(playerRef, ownerId, null));
+            if (adminList && !PermissionUtil.hasAdminManagePermission(player)) {
+                player.sendMessage(Message.raw("You do not have permission to manage admin shops."));
+                return;
+            }
+            player.getPageManager().openCustomPage(ref, store, new ShopEditorPage(playerRef, ownerId, null, false, adminList));
             return;
         }
 
@@ -144,16 +154,28 @@ public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListE
         Shop shop = shops.get(shopIndex);
 
         if ("Edit".equals(data.action)) {
-            player.getPageManager().openCustomPage(ref, store, new ShopEditorPage(playerRef, ownerId, shop.name()));
+            if (shop.isAdmin() && !PermissionUtil.hasAdminManagePermission(player)) {
+                player.sendMessage(Message.raw("You do not have permission to edit this shop."));
+                return;
+            }
+            player.getPageManager().openCustomPage(ref, store, new ShopEditorPage(playerRef, ownerId, shop.name(), false, adminList));
             return;
         }
 
         if ("Delete".equals(data.action)) {
-            player.getPageManager().openCustomPage(ref, store, new ShopDeleteConfirmationPage(playerRef, ownerId, shop.name()));
+            if (shop.isAdmin() && !PermissionUtil.hasAdminManagePermission(player)) {
+                player.sendMessage(Message.raw("You do not have permission to delete this shop."));
+                return;
+            }
+            player.getPageManager().openCustomPage(ref, store, new ShopDeleteConfirmationPage(playerRef, ownerId, shop.name(), false, adminList));
             return;
         }
 
         if ("Npc".equals(data.action)) {
+            if (shop.isAdmin() && !PermissionUtil.hasAdminManagePermission(player)) {
+                player.sendMessage(Message.raw("You do not have permission to manage this shop."));
+                return;
+            }
             handleNpcToggle(ref, store, player, playerRef, shop);
             return;
         }
@@ -209,7 +231,7 @@ public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListE
         }
         
         // Refresh the page to update button states
-        player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId));
+        player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId, adminList));
     }
 
     private List<Shop> loadShops(@Nonnull ShopRegistry registry) {

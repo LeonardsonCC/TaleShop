@@ -44,6 +44,7 @@ public class SqliteShopStorage implements ShopStorage {
 
             createTables();
             ensureDisplayNameColumn();
+            ensureAdminColumn();
         } catch (IOException | SQLException e) {
             throw new RuntimeException("Failed to initialize database", e);
         }
@@ -58,6 +59,7 @@ public class SqliteShopStorage implements ShopStorage {
                 "    display_name TEXT NOT NULL," +
                 "    owner_name TEXT NOT NULL," +
                 "    trader_uuid TEXT," +
+                "    is_admin INTEGER NOT NULL DEFAULT 0," +
                 "    PRIMARY KEY (owner_id, name)" +
                 ")"
             );
@@ -100,6 +102,27 @@ public class SqliteShopStorage implements ShopStorage {
             try (Statement stmt = connection.createStatement()) {
                 stmt.execute("ALTER TABLE shops ADD COLUMN display_name TEXT");
                 stmt.execute("UPDATE shops SET display_name = name WHERE display_name IS NULL");
+            }
+        }
+    }
+
+    private void ensureAdminColumn() throws SQLException {
+        boolean hasAdmin = false;
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery("PRAGMA table_info(shops)")) {
+            while (rs.next()) {
+                String columnName = rs.getString("name");
+                if ("is_admin".equalsIgnoreCase(columnName)) {
+                    hasAdmin = true;
+                    break;
+                }
+            }
+        }
+
+        if (!hasAdmin) {
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("ALTER TABLE shops ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0");
+                stmt.execute("UPDATE shops SET is_admin = 0 WHERE is_admin IS NULL");
             }
         }
     }
@@ -184,7 +207,7 @@ public class SqliteShopStorage implements ShopStorage {
     }
 
     private void createShopInternal(String ownerId, String ownerName, String name, String traderUuid) throws SQLException {
-        String sql = "INSERT OR IGNORE INTO shops (owner_id, name, display_name, owner_name, trader_uuid) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT OR IGNORE INTO shops (owner_id, name, display_name, owner_name, trader_uuid, is_admin) VALUES (?, ?, ?, ?, ?, 0)";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, ownerId);
             pstmt.setString(2, normalizeName(name));
@@ -212,7 +235,12 @@ public class SqliteShopStorage implements ShopStorage {
 
     @Nonnull
     @Override
-    public synchronized Shop createShop(@Nonnull String ownerId, @Nonnull String ownerName, @Nonnull String name) {
+    public synchronized Shop createShop(
+        @Nonnull String ownerId,
+        @Nonnull String ownerName,
+        @Nonnull String name,
+        boolean isAdmin
+    ) {
         if (ownerId.isBlank()) {
             throw new IllegalArgumentException("Owner id is required.");
         }
@@ -236,15 +264,16 @@ public class SqliteShopStorage implements ShopStorage {
             throw new RuntimeException("Failed to check shop existence", e);
         }
 
-        String sql = "INSERT INTO shops (owner_id, name, display_name, owner_name, trader_uuid) VALUES (?, ?, ?, ?, NULL)";
+        String sql = "INSERT INTO shops (owner_id, name, display_name, owner_name, trader_uuid, is_admin) VALUES (?, ?, ?, ?, NULL, ?)";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, ownerId);
             pstmt.setString(2, normalizedName);
             pstmt.setString(3, trimmedName);
             pstmt.setString(4, ownerName);
+            pstmt.setInt(5, isAdmin ? 1 : 0);
             pstmt.executeUpdate();
 
-            return new Shop(ownerId, ownerName, trimmedName, List.of(), "");
+            return new Shop(ownerId, ownerName, trimmedName, List.of(), "", isAdmin);
         } catch (SQLException e) {
             throw new RuntimeException("Failed to create shop", e);
         }
@@ -313,7 +342,7 @@ public class SqliteShopStorage implements ShopStorage {
     @Override
     public synchronized Shop getShop(@Nonnull String ownerId, @Nonnull String name) {
         String nameKey = normalizeName(name);
-        String sql = "SELECT owner_name, trader_uuid, display_name FROM shops WHERE owner_id = ? AND name = ?";
+        String sql = "SELECT owner_name, trader_uuid, display_name, is_admin FROM shops WHERE owner_id = ? AND name = ?";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, ownerId);
             pstmt.setString(2, nameKey);
@@ -325,10 +354,18 @@ public class SqliteShopStorage implements ShopStorage {
                 String ownerName = rs.getString("owner_name");
                 String traderUuid = rs.getString("trader_uuid");
                 String displayName = rs.getString("display_name");
+                boolean isAdmin = rs.getInt("is_admin") != 0;
 
                 List<Trade> trades = loadTrades(ownerId, nameKey);
 
-                return new Shop(ownerId, ownerName, displayName == null ? nameKey : displayName, trades, traderUuid == null ? "" : traderUuid);
+                return new Shop(
+                    ownerId,
+                    ownerName,
+                    displayName == null ? nameKey : displayName,
+                    trades,
+                    traderUuid == null ? "" : traderUuid,
+                    isAdmin
+                );
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to get shop", e);
@@ -393,7 +430,7 @@ public class SqliteShopStorage implements ShopStorage {
     @Override
     public synchronized List<Shop> listShops(@Nonnull String ownerId) {
         List<Shop> shops = new ArrayList<>();
-        String sql = "SELECT name, display_name, owner_name, trader_uuid FROM shops WHERE owner_id = ?";
+        String sql = "SELECT name, display_name, owner_name, trader_uuid, is_admin FROM shops WHERE owner_id = ?";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, ownerId);
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -402,10 +439,18 @@ public class SqliteShopStorage implements ShopStorage {
                     String displayName = rs.getString("display_name");
                     String ownerName = rs.getString("owner_name");
                     String traderUuid = rs.getString("trader_uuid");
+                    boolean isAdmin = rs.getInt("is_admin") != 0;
 
                     List<Trade> trades = loadTrades(ownerId, name);
 
-                    shops.add(new Shop(ownerId, ownerName, displayName == null ? name : displayName, trades, traderUuid == null ? "" : traderUuid));
+                    shops.add(new Shop(
+                        ownerId,
+                        ownerName,
+                        displayName == null ? name : displayName,
+                        trades,
+                        traderUuid == null ? "" : traderUuid,
+                        isAdmin
+                    ));
                 }
             }
         } catch (SQLException e) {
@@ -420,7 +465,7 @@ public class SqliteShopStorage implements ShopStorage {
     @Override
     public synchronized List<Shop> listAllShops() {
         List<Shop> shops = new ArrayList<>();
-        String sql = "SELECT owner_id, name, display_name, owner_name, trader_uuid FROM shops";
+        String sql = "SELECT owner_id, name, display_name, owner_name, trader_uuid, is_admin FROM shops";
         try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
@@ -429,10 +474,18 @@ public class SqliteShopStorage implements ShopStorage {
                 String displayName = rs.getString("display_name");
                 String ownerName = rs.getString("owner_name");
                 String traderUuid = rs.getString("trader_uuid");
+                boolean isAdmin = rs.getInt("is_admin") != 0;
 
                 List<Trade> trades = loadTrades(ownerId, name);
 
-                shops.add(new Shop(ownerId, ownerName, displayName == null ? name : displayName, trades, traderUuid == null ? "" : traderUuid));
+                shops.add(new Shop(
+                    ownerId,
+                    ownerName,
+                    displayName == null ? name : displayName,
+                    trades,
+                    traderUuid == null ? "" : traderUuid,
+                    isAdmin
+                ));
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to list all shops", e);
@@ -449,7 +502,7 @@ public class SqliteShopStorage implements ShopStorage {
             return null;
         }
 
-        String sql = "SELECT owner_id, name, display_name, owner_name FROM shops WHERE trader_uuid = ?";
+        String sql = "SELECT owner_id, name, display_name, owner_name, is_admin FROM shops WHERE trader_uuid = ?";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, traderUuid);
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -461,10 +514,18 @@ public class SqliteShopStorage implements ShopStorage {
                 String name = rs.getString("name");
                 String displayName = rs.getString("display_name");
                 String ownerName = rs.getString("owner_name");
+                boolean isAdmin = rs.getInt("is_admin") != 0;
 
                 List<Trade> trades = loadTrades(ownerId, name);
 
-                return new Shop(ownerId, ownerName, displayName == null ? name : displayName, trades, traderUuid);
+                return new Shop(
+                    ownerId,
+                    ownerName,
+                    displayName == null ? name : displayName,
+                    trades,
+                    traderUuid,
+                    isAdmin
+                );
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to find shop by trader UUID", e);

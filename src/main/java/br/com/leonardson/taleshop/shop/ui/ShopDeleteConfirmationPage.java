@@ -1,6 +1,8 @@
 package br.com.leonardson.taleshop.shop.ui;
 
 import br.com.leonardson.taleshop.TaleShop;
+import br.com.leonardson.taleshop.permission.PermissionUtil;
+import br.com.leonardson.taleshop.shop.Shop;
 import br.com.leonardson.taleshop.shop.ShopRegistry;
 import br.com.leonardson.taleshop.shop.TraderNpc;
 import com.hypixel.hytale.component.Ref;
@@ -26,16 +28,28 @@ public class ShopDeleteConfirmationPage extends InteractiveCustomUIPage<ShopDele
     private final String ownerId;
     private final String shopName;
     private final boolean fromTraderMenu; // If true, return to trader menu on cancel
+    private final boolean adminList;
 
     public ShopDeleteConfirmationPage(@Nonnull PlayerRef playerRef, @Nonnull String ownerId, @Nonnull String shopName) {
-        this(playerRef, ownerId, shopName, false);
+        this(playerRef, ownerId, shopName, false, false);
     }
 
     public ShopDeleteConfirmationPage(@Nonnull PlayerRef playerRef, @Nonnull String ownerId, @Nonnull String shopName, boolean fromTraderMenu) {
+        this(playerRef, ownerId, shopName, fromTraderMenu, false);
+    }
+
+    public ShopDeleteConfirmationPage(
+        @Nonnull PlayerRef playerRef,
+        @Nonnull String ownerId,
+        @Nonnull String shopName,
+        boolean fromTraderMenu,
+        boolean adminList
+    ) {
         super(playerRef, CustomPageLifetime.CanDismiss, DeleteConfirmEventData.CODEC);
         this.ownerId = ownerId;
         this.shopName = shopName;
         this.fromTraderMenu = fromTraderMenu;
+        this.adminList = adminList;
     }
 
     @Override
@@ -82,7 +96,7 @@ public class ShopDeleteConfirmationPage extends InteractiveCustomUIPage<ShopDele
                 // Return to trader menu
                 player.getPageManager().openCustomPage(ref, store, new TraderMenuPage(playerRef, ownerId, shopName));
             } else {
-                player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId));
+                player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId, adminList));
             }
             return;
         }
@@ -105,6 +119,12 @@ public class ShopDeleteConfirmationPage extends InteractiveCustomUIPage<ShopDele
         }
 
         try {
+            Shop shop = registry.getShop(ownerId, shopName);
+            if (shop.isAdmin() && !PermissionUtil.hasAdminManagePermission(player)) {
+                player.sendMessage(Message.raw("You do not have permission to delete this shop."));
+                player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId, adminList));
+                return;
+            }
             // First, despawn any associated NPC
             String traderUuid = registry.getTraderUuid(ownerId, shopName);
             if (traderUuid != null && !traderUuid.isBlank()) {
@@ -116,13 +136,13 @@ public class ShopDeleteConfirmationPage extends InteractiveCustomUIPage<ShopDele
             player.sendMessage(Message.raw("Shop '" + shopName + "' has been deleted."));
             
             // Always redirect to shop list after delete
-            player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId));
+            player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId, adminList));
         } catch (IllegalArgumentException ex) {
             player.sendMessage(Message.raw("Error: " + ex.getMessage()));
-            player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId));
+            player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId, adminList));
         } catch (Exception ex) {
             player.sendMessage(Message.raw("An unexpected error occurred: " + ex.getMessage()));
-            player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId));
+            player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId, adminList));
         }
     }
 
