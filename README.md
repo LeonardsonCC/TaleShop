@@ -22,7 +22,7 @@ A Hytale server plugin that enables players to create and manage custom trading 
 
 ## Installation
 
-1. Download the latest `TaleShop-1.0.1.jar` from releases
+1. Download the latest `TaleShop-2.0.1.jar` from releases
 2. Place the JAR file in your server's `mods/` directory
 3. Start or restart your server
 4. Configuration will be auto-generated at `run/mods/Leonardson_TaleShop/TaleShopConfig.json`
@@ -33,7 +33,7 @@ A Hytale server plugin that enables players to create and manage custom trading 
 ./gradlew build
 ```
 
-The compiled JAR will be available at `build/libs/TaleShop-1.0.1.jar`
+The compiled JAR will be available at `build/libs/TaleShop-2.0.1.jar`
 
 ## Configuration
 
@@ -90,9 +90,9 @@ The compiled JAR will be available at `build/libs/TaleShop-1.0.1.jar`
 
 | Permission | Description |
 |------------|-------------|
-| `taleshop.shop.manage` | Required for all `/shop` commands (base permission on the command collection) |
+| `taleshop.shop.manage` | Required for all `/taleshop` commands (base permission on the command collection) |
 | `taleshop.admin.manage` | Manage admin shops and edit admin-owned NPCs |
-| `taleshop.shop.open` | Additional permission required for `/shop open` |
+| `taleshop.shop.open` | Additional permission required for `/taleshop open` |
 | `taleshop.npc.selectentity` | Allows selecting custom entity types when spawning NPCs (opens entity selection UI) |
 
 Players without these permissions can still interact with shop NPCs to make trades.
@@ -101,41 +101,41 @@ Players without these permissions can still interact with shop NPCs to make trad
 
 ## Commands
 
-All commands use the base `/shop` command with various subcommands. Alternative aliases: `/taleshop`, `/tshop`, `/barter`
+All commands use the base `/taleshop` command with various subcommands. Aliases: `/tshop`, `/barter`
 
 ### Shop Management
 
 | Command | Description | Usage | Permission |
 |---------|-------------|-------|------------|
-| `/shop create <name>` | Create a new shop | `/shop create MyShop` | `taleshop.shop.manage` |
-| `/shop rename <name> <newName>` | Rename an existing shop | `/shop rename MyShop BetterShop` | `taleshop.shop.manage` |
-| `/shop delete <name>` | Delete a shop and all its trades | `/shop delete MyShop` | `taleshop.shop.manage` |
-| `/shop list` | List all your shops with trade counts | `/shop list` | `taleshop.shop.manage` |
-| `/shop get <name>` | Get detailed information about a shop | `/shop get MyShop` | `taleshop.shop.manage` |
-| `/shop editor` | Open the graphical shop management UI | `/shop editor` | `taleshop.shop.manage` |
-| `/shop admin` | Open the admin shop management UI | `/shop admin` | `taleshop.admin.manage` |
-| `/shop open <owner> <shop>` | Open a shop remotely without NPC interaction | `/shop open PlayerName MyShop` | `taleshop.shop.manage`, `taleshop.shop.open` |
+| `/taleshop create <name>` | Create a new shop | `/taleshop create MyShop` | `taleshop.shop.manage` |
+| `/taleshop rename <name> <newName>` | Rename an existing shop | `/taleshop rename MyShop BetterShop` | `taleshop.shop.manage` |
+| `/taleshop delete <name>` | Delete a shop and all its trades | `/taleshop delete MyShop` | `taleshop.shop.manage` |
+| `/taleshop list` | List all your shops with trade counts | `/taleshop list` | `taleshop.shop.manage` |
+| `/taleshop get <name>` | Get detailed information about a shop | `/taleshop get MyShop` | `taleshop.shop.manage` |
+| `/taleshop editor` | Open the graphical shop management UI | `/taleshop editor` | `taleshop.shop.manage` |
+| `/taleshop admin` | Open the admin shop management UI | `/taleshop admin` | `taleshop.admin.manage` |
+| `/taleshop open <owner> <shop>` | Open a shop remotely without NPC interaction | `/taleshop open PlayerName MyShop` | `taleshop.shop.manage`, `taleshop.shop.open` |
 
 ### NPC Management
 
 | Command | Description | Usage | Permission |
 |---------|-------------|-------|------------|
-| `/shop npc spawn <name> [entityRole]` | Spawn an NPC trader for your shop at your location | `/shop npc spawn MyShop` | `taleshop.shop.manage` |
-| `/shop npc despawn <name>` | Remove the NPC trader for your shop | `/shop npc despawn MyShop` | `taleshop.shop.manage` |
+| `/taleshop npc spawn <name> [entityRole]` | Spawn an NPC trader for your shop at your location | `/taleshop npc spawn MyShop` | `taleshop.shop.manage` |
+| `/taleshop npc despawn <name>` | Remove the NPC trader for your shop | `/taleshop npc despawn MyShop` | `taleshop.shop.manage` |
 
 ### Trade Management
 
 | Command | Description | Usage | Permission |
 |---------|-------------|-------|------------|
-| `/shop trade create <shopName> <inputItem> <inputQty> <outputItem> <outputQty>` | Create a new trade in the shop (max 20 per shop) | `/shop trade create MyShop Ingredient_Gold 10 Tool_IronSword 1` | `taleshop.shop.manage` |
-| `/shop trade list <shopName>` | List all trades in a shop | `/shop trade list MyShop` | `taleshop.shop.manage` |
-| `/shop trade update <shopName> <tradeId> <inputItem> <inputQty> <outputItem> <outputQty>` | Update an existing trade | `/shop trade update MyShop 1 Ingredient_Gold 5 Tool_IronSword 1` | `taleshop.shop.manage` |
-| `/shop trade delete <shopName> <tradeId>` | Delete a trade from a shop | `/shop trade delete MyShop 1` | `taleshop.shop.manage` |
+| `/taleshop trade create <shopName> <inputItem> <inputQty> <outputItem> <outputQty>` | Create a new trade in the shop (max 20 per shop) | `/taleshop trade create MyShop Ingredient_Gold 10 Tool_IronSword 1` | `taleshop.shop.manage` |
+| `/taleshop trade list <shopName>` | List all trades in a shop | `/taleshop trade list MyShop` | `taleshop.shop.manage` |
+| `/taleshop trade update <shopName> <tradeId> <inputItem> <inputQty> <outputItem> <outputQty>` | Update an existing trade | `/taleshop trade update MyShop 1 Ingredient_Gold 5 Tool_IronSword 1` | `taleshop.shop.manage` |
+| `/taleshop trade delete <shopName> <tradeId>` | Delete a trade from a shop | `/taleshop trade delete MyShop 1` | `taleshop.shop.manage` |
 
 ### Command Hierarchy
 
 ```
-/shop (aliases: /taleshop, /tshop, /barter)
+/taleshop (aliases: /tshop, /barter)
 ├── create <name>
 ├── rename <name> <newName>
 ├── delete <name>
@@ -159,18 +159,18 @@ All commands use the base `/shop` command with various subcommands. Alternative 
 
 1. **Create a shop:**
    ```
-   /shop create MyFirstShop
+   /taleshop create MyFirstShop
    ```
 
 2. **Add a trade to your shop:**
    ```
-   /shop trade create MyFirstShop Ingredient_Gold 10 Tool_IronSword 1
+   /taleshop trade create MyFirstShop Ingredient_Gold 10 Tool_IronSword 1
    ```
    This creates a trade where players give 10 gold and receive 1 iron sword.
 
 3. **Spawn the NPC trader:**
    ```
-   /shop npc spawn MyFirstShop [entityRole]
+   /taleshop npc spawn MyFirstShop [entityRole]
    ```
    The NPC will spawn 1.5 blocks in front of you. If you have `taleshop.npc.selectentity`, you can provide an entity role or pick one from the selection UI.
 
@@ -186,10 +186,10 @@ All commands use the base `/shop` command with various subcommands. Alternative 
 You can create and manage multiple shops:
 
 ```bash
-/shop create Weapons
-/shop create Potions
-/shop create Materials
-/shop list
+/taleshop create Weapons
+/taleshop create Potions
+/taleshop create Materials
+/taleshop list
 ```
 
 ### Using the Shop Editor UI
@@ -197,7 +197,7 @@ You can create and manage multiple shops:
 For a more user-friendly experience, use the graphical shop editor:
 
 ```
-/shop editor
+/taleshop editor
 ```
 
 This opens an interactive UI where you can:
@@ -212,7 +212,7 @@ Admin shops are server-managed shops with infinite stock and no storage requirem
 `taleshop.admin.manage` can create or edit admin shops.
 
 ```
-/shop admin
+/taleshop admin
 ```
 
 In admin shops:
@@ -225,16 +225,16 @@ In admin shops:
 With the `taleshop.shop.manage` and `taleshop.shop.open` permissions, you can open any shop remotely without needing to find and interact with the NPC:
 
 ```
-/shop open <owner_name> <shop_name>
+/taleshop open <owner_name> <shop_name>
 ```
 
 **Examples:**
 ```bash
 # Open Alice's weapon shop
-/shop open Alice WeaponShop
+/taleshop open Alice WeaponShop
 
 # Open Bob's potion store
-/shop open Bob Potions
+/taleshop open Bob Potions
 ```
 
 **Behavior:**
@@ -295,15 +295,15 @@ The plugin automatically migrates from legacy `shops.properties` format if found
 
 ```bash
 # Create the shop
-/shop create WeaponShop
+/taleshop create WeaponShop
 
 # Add various weapon trades
-/shop trade create WeaponShop Ingredient_Gold 20 Tool_IronSword 1
-/shop trade create WeaponShop Ingredient_Gold 30 Tool_IronAxe 1
-/shop trade create WeaponShop Ingredient_Diamond 10 Tool_DiamondSword 1
+/taleshop trade create WeaponShop Ingredient_Gold 20 Tool_IronSword 1
+/taleshop trade create WeaponShop Ingredient_Gold 30 Tool_IronAxe 1
+/taleshop trade create WeaponShop Ingredient_Diamond 10 Tool_DiamondSword 1
 
 # Spawn the trader
-/shop npc spawn WeaponShop
+/taleshop npc spawn WeaponShop
 
 # Place chests nearby and stock with weapons
 ```
@@ -312,15 +312,15 @@ The plugin automatically migrates from legacy `shops.properties` format if found
 
 ```bash
 # Create the shop
-/shop create ResourceExchange
+/taleshop create ResourceExchange
 
 # Add resource conversion trades
-/shop trade create ResourceExchange Block_Stone 64 Ingredient_Gold 5
-/shop trade create ResourceExchange Block_Wood 32 Ingredient_Gold 3
-/shop trade create ResourceExchange Ingredient_Coal 16 Ingredient_Diamond 1
+/taleshop trade create ResourceExchange Block_Stone 64 Ingredient_Gold 5
+/taleshop trade create ResourceExchange Block_Wood 32 Ingredient_Gold 3
+/taleshop trade create ResourceExchange Ingredient_Coal 16 Ingredient_Diamond 1
 
 # Spawn the trader
-/shop npc spawn ResourceExchange
+/taleshop npc spawn ResourceExchange
 
 # Place chests nearby and stock with resources
 ```
@@ -329,28 +329,28 @@ The plugin automatically migrates from legacy `shops.properties` format if found
 
 ```bash
 # List all your shops
-/shop list
+/taleshop list
 
 # Get details about a specific shop
-/shop get WeaponShop
+/taleshop get WeaponShop
 
 # Rename a shop
-/shop rename WeaponShop ArmorAndWeapons
+/taleshop rename WeaponShop ArmorAndWeapons
 
 # List all trades in a shop
-/shop trade list ArmorAndWeapons
+/taleshop trade list ArmorAndWeapons
 
 # Update a trade
-/shop trade update ArmorAndWeapons 1 Ingredient_Gold 15 Tool_IronSword 1
+/taleshop trade update ArmorAndWeapons 1 Ingredient_Gold 15 Tool_IronSword 1
 
 # Delete a specific trade
-/shop trade delete ArmorAndWeapons 2
+/taleshop trade delete ArmorAndWeapons 2
 
 # Remove the NPC
-/shop npc despawn ArmorAndWeapons
+/taleshop npc despawn ArmorAndWeapons
 
 # Delete the entire shop
-/shop delete ArmorAndWeapons
+/taleshop delete ArmorAndWeapons
 ```
 
 ## Troubleshooting
@@ -359,7 +359,7 @@ The plugin automatically migrates from legacy `shops.properties` format if found
 - Ensure you have the `taleshop.shop.manage` permission
 - Check that the NPC plugin is loaded on your server
 - Verify there's enough space in front of you (1.5 blocks)
-- Make sure the shop exists first (`/shop list`)
+- Make sure the shop exists first (`/taleshop list`)
 
 ### Trades not working
 - Ensure storage containers are within the configured distance (default: 2 blocks)

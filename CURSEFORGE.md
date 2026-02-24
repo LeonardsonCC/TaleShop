@@ -19,8 +19,8 @@ TaleShop allows players to set up custom trading shops with interactive NPC merc
 
 ## How It Works
 
-1. **Create a shop** with `/shop create <name>`
-2. **Open the shop editor** with `/shop editor` to manage your shops
+1. **Create a shop** with `/taleshop create <name>`
+2. **Open the shop editor** with `/taleshop editor` to manage your shops
 3. **Add trades** through the graphical interface - pick items from your inventory
 4. **Spawn an NPC** trader at your desired location
 5. **Place chests** nearby and stock them with your goods
@@ -39,18 +39,18 @@ items, but output items are always available.
 
 1. **Create a shop:**
    ```
-   /shop create MyShop
+   /taleshop create MyShop
    ```
 
 2. **Open the shop editor:**
    ```
-   /shop editor
+   /taleshop editor
    ```
    Select your shop and add trades using the graphical interface. You can pick items directly from your inventory!
 
 3. **Spawn the NPC trader:**
    ```
-   /shop npc spawn MyShop
+   /taleshop npc spawn MyShop
    ```
    The NPC will appear in front of you. If you have the `taleshop.npc.selectentity` permission, you can choose which entity type to use! Otherwise, it defaults to a Klops Merchant. Right-click it anytime to manage your shop!
 
@@ -63,7 +63,7 @@ That's it! Players can now interact with your NPC to browse and purchase from yo
 
 There are two easy ways to manage your shop:
 
-- **Shop Editor UI**: Use `/shop editor` to see all your shops and manage them through a user-friendly interface
+- **Shop Editor UI**: Use `/taleshop editor` to see all your shops and manage them through a user-friendly interface
 - **Right-click your NPC**: Click your own trader NPC to open the management menu
 
 Both methods let you:
@@ -73,55 +73,55 @@ Both methods let you:
 
 ## Commands
 
-All commands use `/shop` (or `/taleshop`, `/tshop`, `/barter`)
+All commands use `/taleshop` (aliases: `/tshop`, `/barter`)
 
 ### Essential Commands
 
 | Command | Description |
 |---------|-------------|
-| `/shop create <name>` | Create a new shop |
-| `/shop editor` | Open the shop management interface |
-| `/shop list` | View all your shops |
-| `/shop admin` | Open the admin shop management interface |
-| `/shop npc spawn <name> [entityRole]` | Spawn your shop's NPC trader (optionally specify entity type) |
-| `/shop npc despawn <name>` | Remove your shop's NPC |
-| `/shop open <owner> <shop>` | Open any shop remotely |
+| `/taleshop create <name>` | Create a new shop |
+| `/taleshop editor` | Open the shop management interface |
+| `/taleshop list` | View all your shops |
+| `/taleshop admin` | Open the admin shop management interface |
+| `/taleshop npc spawn <name> [entityRole]` | Spawn your shop's NPC trader (optionally specify entity type) |
+| `/taleshop npc despawn <name>` | Remove your shop's NPC |
+| `/taleshop open <owner> <shop>` | Open any shop remotely |
 
 ### Other Commands
 
 | Command | Description |
 |---------|-------------|
-| `/shop rename <name> <newName>` | Rename a shop |
-| `/shop delete <name>` | Delete a shop |
+| `/taleshop rename <name> <newName>` | Rename a shop |
+| `/taleshop delete <name>` | Delete a shop |
 
 ### Full Command List
 
 | Command | Description |
 |---------|-------------|
-| `/shop create <name>` | Create a new shop |
-| `/shop rename <name> <newName>` | Rename a shop |
-| `/shop delete <name>` | Delete a shop |
-| `/shop list` | View all your shops |
-| `/shop get <name>` | View details about a shop |
-| `/shop editor` | Open the shop management interface |
-| `/shop admin` | Open the admin shop management interface |
-| `/shop open <owner> <shop>` | Open a shop remotely |
-| `/shop npc spawn <name> [entityRole]` | Spawn your shop's NPC trader (optional entity role) |
-| `/shop npc despawn <name>` | Remove your shop's NPC |
-| `/shop trade create <shopName> <inputItem> <inputQty> <outputItem> <outputQty>` | Create a new trade |
-| `/shop trade list <shopName>` | List trades in a shop |
-| `/shop trade update <shopName> <tradeId> <inputItem> <inputQty> <outputItem> <outputQty>` | Update a trade |
-| `/shop trade delete <shopName> <tradeId>` | Delete a trade |
+| `/taleshop create <name>` | Create a new shop |
+| `/taleshop rename <name> <newName>` | Rename a shop |
+| `/taleshop delete <name>` | Delete a shop |
+| `/taleshop list` | View all your shops |
+| `/taleshop get <name>` | View details about a shop |
+| `/taleshop editor` | Open the shop management interface |
+| `/taleshop admin` | Open the admin shop management interface |
+| `/taleshop open <owner> <shop>` | Open a shop remotely |
+| `/taleshop npc spawn <name> [entityRole]` | Spawn your shop's NPC trader (optional entity role) |
+| `/taleshop npc despawn <name>` | Remove your shop's NPC |
+| `/taleshop trade create <shopName> <inputItem> <inputQty> <outputItem> <outputQty>` | Create a new trade |
+| `/taleshop trade list <shopName>` | List trades in a shop |
+| `/taleshop trade update <shopName> <tradeId> <inputItem> <inputQty> <outputItem> <outputQty>` | Update a trade |
+| `/taleshop trade delete <shopName> <tradeId>` | Delete a trade |
 
-**Tip:** Most shop management is easier through the graphical editor (`/shop editor`) or by right-clicking your NPC!
+**Tip:** Most shop management is easier through the graphical editor (`/taleshop editor`) or by right-clicking your NPC!
 
 ## Permissions
 
 | Permission | What it does |
 |------------|--------------|
-| `taleshop.shop.manage` | Required for all `/shop` commands (base permission on the command collection) |
+| `taleshop.shop.manage` | Required for all `/taleshop` commands (base permission on the command collection) |
 | `taleshop.admin.manage` | Manage admin shops and edit admin-owned NPCs |
-| `taleshop.shop.open` | Additional permission required for `/shop open` |
+| `taleshop.shop.open` | Additional permission required for `/taleshop open` |
 | `taleshop.npc.selectentity` | Choose custom NPC entity types when spawning traders |
 
 **Note:** Anyone can trade with NPCs - no permission needed!
@@ -132,13 +132,13 @@ All commands use `/shop` (or `/taleshop`, `/tshop`, `/barter`)
 
 ```bash
 # Create the shop
-/shop create Weapons
+/taleshop create Weapons
 
 # Open the editor and add your trades
-/shop editor
+/taleshop editor
 
 # Spawn the NPC
-/shop npc spawn Weapons
+/taleshop npc spawn Weapons
 ```
 
 Then place chests near the NPC and stock them with weapons. Players can now visit your shop!
@@ -147,13 +147,13 @@ Then place chests near the NPC and stock them with weapons. Players can now visi
 
 ```bash
 # Create the shop
-/shop create Resources
+/taleshop create Resources
 
 # Open the editor to configure trades
-/shop editor
+/taleshop editor
 
 # Spawn the NPC
-/shop npc spawn Resources
+/taleshop npc spawn Resources
 ```
 
 Stock your chests with gold or other currency items, and set up trades where players exchange resources for coins.
@@ -164,10 +164,10 @@ With the `taleshop.shop.manage` and `taleshop.shop.open` permissions, you can ac
 
 ```bash
 # Browse Alice's weapon shop
-/shop open Alice Weapons
+/taleshop open Alice Weapons
 
 # Check out Bob's resource exchange
-/shop open Bob Resources
+/taleshop open Bob Resources
 ```
 
 If you're the shop owner, you'll see the management interface. If not, you'll see the shopping interface just like clicking the NPC.
@@ -190,7 +190,7 @@ The plugin creates a config file at `run/mods/Leonardson_TaleShop/TaleShopConfig
 
 ## Tips & Tricks
 
-- **Use the Editor**: The `/shop editor` command provides a visual interface - much easier than remembering commands!
+- **Use the Editor**: The `/taleshop editor` command provides a visual interface - much easier than remembering commands!
 - **Right-Click Management**: Click your own NPC to quickly manage trades without typing commands
 - **Custom Entities**: If you have the `taleshop.npc.selectentity` permission, you can choose any NPC entity type (Klops, Feran, Trork, etc.) for your trader!
 - **Organize Your Storage**: Use multiple chests near your NPC for better organization
@@ -203,7 +203,7 @@ The plugin creates a config file at `run/mods/Leonardson_TaleShop/TaleShopConfig
 ## Common Questions
 
 **Q: How do I add trades to my shop?**  
-A: Use `/shop editor` or right-click your own NPC to open the management interface. You can add trades through the graphical UI!
+A: Use `/taleshop editor` or right-click your own NPC to open the management interface. You can add trades through the graphical UI!
 
 **Q: How close do chests need to be?**  
 A: Within 2 blocks by default (configurable)
@@ -221,7 +221,7 @@ A: No. Admin shops have infinite stock and ignore storage containers.
 A: The plugin only manages trade transactions - use your server's protection plugins for chest security
 
 **Q: Can I move my NPC?**  
-A: Yes! Despawn it with `/shop npc despawn <name>` and spawn it at the new location
+A: Yes! Despawn it with `/taleshop npc despawn <name>` and spawn it at the new location
 
 **Q: How do I know what items to use in trades?**  
 A: When using the editor, you can pick items directly from your inventory - no need to memorize item names!

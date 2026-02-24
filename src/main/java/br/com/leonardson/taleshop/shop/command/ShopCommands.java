@@ -11,7 +11,7 @@ public class ShopCommands extends AbstractCommandCollection {
 
     this.requirePermission("taleshop.shop.manage");
 
-    this.addAliases("shop", "tshop", "barter");
+    this.addAliases("tshop", "barter");
 
     addSubCommand(new CreateShopCommand(shopRegistry));
     addSubCommand(new RenameShopCommand(shopRegistry));
