@@ -73,7 +73,8 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
             playerInventory = playerComponent.getInventory().getCombinedHotbarFirst();
         }
         Shop shop = resolveShop();
-        List<ItemContainer> stockContainers = shop == null
+        boolean isAdminShop = shop != null && shop.isAdmin();
+        List<ItemContainer> stockContainers = (shop == null || isAdminShop)
             ? Collections.emptyList()
             : resolveNearbyContainers(store, shop);
         List<Trade> trades = shop == null ? new ArrayList<>() : new ArrayList<>(shop.trades());
@@ -98,12 +99,12 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
             commandBuilder.set(selector + " #HaveNeedLabel.Text", "Have: " + playerHas);
             commandBuilder.set(selector + " #HaveNeedLabel.Style.TextColor", canAfford ? "#3d913f" : "#962f2f");
 
-            int availableStock = countItemsInContainers(stockContainers, trade.outputItemId());
-            boolean outOfStock = availableStock < trade.outputQuantity();
+            int availableStock = isAdminShop ? Integer.MAX_VALUE : countItemsInContainers(stockContainers, trade.outputItemId());
+            boolean outOfStock = !isAdminShop && availableStock < trade.outputQuantity();
             commandBuilder.set(selector + " #Stock.Visible", true);
-            commandBuilder.set(selector + " #Stock.Text", String.valueOf(Math.max(0, availableStock)));
+            commandBuilder.set(selector + " #Stock.Text", isAdminShop ? "INF" : String.valueOf(Math.max(0, availableStock)));
             commandBuilder.set(selector + " #OutOfStockOverlay.Visible", outOfStock);
-            commandBuilder.set(selector + " #TradeButton.Disabled", outOfStock || !canAfford);
+            commandBuilder.set(selector + " #TradeButton.Disabled", (!isAdminShop && outOfStock) || !canAfford);
 
             eventBuilder.addEventBinding(
                 CustomUIEventBindingType.Activating,
@@ -124,6 +125,7 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
         if (shop == null) {
             return;
         }
+        boolean isAdminShop = shop.isAdmin();
         List<Trade> trades = new ArrayList<>(shop.trades());
         if (data.tradeIndex >= trades.size()) {
             return;
@@ -140,15 +142,19 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
             return;
         }
 
-        List<ItemContainer> stockContainers = resolveNearbyContainers(store, shop);
-        int availableStock = countItemsInContainers(stockContainers, trade.outputItemId());
-        if (availableStock < trade.outputQuantity()) {
-            playerComponent.sendMessage(Message.raw("Shop is out of stock."));
-            return;
-        }
-        if (!hasSpaceForItems(stockContainers, trade.inputItemId(), trade.inputQuantity())) {
-            playerComponent.sendMessage(Message.raw("Shop has no space for that trade."));
-            return;
+        List<ItemContainer> stockContainers = isAdminShop
+            ? Collections.emptyList()
+            : resolveNearbyContainers(store, shop);
+        if (!isAdminShop) {
+            int availableStock = countItemsInContainers(stockContainers, trade.outputItemId());
+            if (availableStock < trade.outputQuantity()) {
+                playerComponent.sendMessage(Message.raw("Shop is out of stock."));
+                return;
+            }
+            if (!hasSpaceForItems(stockContainers, trade.inputItemId(), trade.inputQuantity())) {
+                playerComponent.sendMessage(Message.raw("Shop has no space for that trade."));
+                return;
+            }
         }
 
         Inventory inventory = playerComponent.getInventory();
@@ -160,8 +166,10 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
         }
 
         removeItemsFromContainer(container, trade.inputItemId(), trade.inputQuantity());
-        removeItemsFromContainers(stockContainers, trade.outputItemId(), trade.outputQuantity());
-        addItemsToContainers(stockContainers, trade.inputItemId(), trade.inputQuantity());
+        if (!isAdminShop) {
+            removeItemsFromContainers(stockContainers, trade.outputItemId(), trade.outputQuantity());
+            addItemsToContainers(stockContainers, trade.inputItemId(), trade.inputQuantity());
+        }
 
         ItemStack outputStack = new ItemStack(trade.outputItemId(), trade.outputQuantity());
         ItemStackTransaction transaction = container.addItemStack(outputStack);

@@ -10,6 +10,7 @@ import java.lang.reflect.Method;
  * may have permission checking capabilities not directly exposed.
  */
 public final class PermissionUtil {
+    public static final String ADMIN_MANAGE_PERMISSION = "taleshop.admin.manage";
     
     private PermissionUtil() {
         // Utility class
@@ -49,6 +50,10 @@ public final class PermissionUtil {
      */
     public static boolean hasEntitySelectionPermission(@Nonnull Player player) {
         return hasPermission(player, "taleshop.npc.selectentity");
+    }
+
+    public static boolean hasAdminManagePermission(@Nonnull Player player) {
+        return hasPermission(player, ADMIN_MANAGE_PERMISSION);
     }
     
     private static Boolean tryInvokePermissionCheck(Player player, String permission, String... methodNames) {
