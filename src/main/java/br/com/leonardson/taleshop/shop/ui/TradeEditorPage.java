@@ -141,7 +141,7 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
             return;
         }
 
-        int capacity = player.getInventory().getCombinedEverything().getCapacity();
+        int capacity = player.getInventory().getCombinedArmorHotbarUtilityStorage().getCapacity();
         if (slotIndex < 0 || slotIndex >= capacity) {
             return;
         }
@@ -223,7 +223,7 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
     }
 
     private int findSlotByItemId(@Nonnull Inventory inventory, @Nonnull String itemId) {
-        ItemContainer combinedContainer = inventory.getCombinedEverything();
+        ItemContainer combinedContainer = inventory.getCombinedArmorHotbarUtilityStorage();
         int capacity = combinedContainer.getCapacity();
         for (short slot = 0; slot < capacity; slot++) {
             ItemStack itemStack = combinedContainer.getItemStack(slot);
@@ -235,7 +235,7 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
     }
 
     private ItemGridSlot[] buildSlots(@Nonnull Inventory inventory) {
-        ItemContainer combinedContainer = inventory.getCombinedEverything();
+        ItemContainer combinedContainer = inventory.getCombinedArmorHotbarUtilityStorage();
         int capacity = combinedContainer.getCapacity();
         ItemGridSlot[] slots = new ItemGridSlot[INVENTORY_GRID_CAPACITY];
 
@@ -257,7 +257,7 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
     private ItemGridSlot[] buildSelectionSlot(@Nonnull Inventory inventory, int selectedIndex, @Nullable String fallbackItemId, int fallbackQuantity) {
         ItemGridSlot slot = new ItemGridSlot();
         if (selectedIndex != NO_SELECTION) {
-            ItemContainer combinedContainer = inventory.getCombinedEverything();
+            ItemContainer combinedContainer = inventory.getCombinedArmorHotbarUtilityStorage();
             if (selectedIndex >= 0 && selectedIndex < combinedContainer.getCapacity()) {
                 ItemStack itemStack = combinedContainer.getItemStack((short) selectedIndex);
                 if (isRenderableItem(itemStack)) {
@@ -280,7 +280,7 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
             return 0;
         }
 
-        ItemContainer combinedContainer = inventory.getCombinedEverything();
+        ItemContainer combinedContainer = inventory.getCombinedArmorHotbarUtilityStorage();
         if (selectedIndex < 0 || selectedIndex >= combinedContainer.getCapacity()) {
             return 0;
         }
@@ -299,7 +299,7 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
             return "";
         }
 
-        ItemContainer combinedContainer = inventory.getCombinedEverything();
+        ItemContainer combinedContainer = inventory.getCombinedArmorHotbarUtilityStorage();
         if (selectedIndex < 0 || selectedIndex >= combinedContainer.getCapacity()) {
             return "";
         }

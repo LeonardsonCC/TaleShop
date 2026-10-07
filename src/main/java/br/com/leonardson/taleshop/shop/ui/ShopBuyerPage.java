@@ -25,15 +25,12 @@ import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
-import com.hypixel.hytale.server.core.universe.world.meta.BlockState;
-import com.hypixel.hytale.server.core.universe.world.meta.BlockStateModule;
-import com.hypixel.hytale.server.core.universe.world.meta.state.ItemContainerState;
+import com.hypixel.hytale.server.core.modules.block.components.ItemContainerBlock;
 import com.hypixel.hytale.server.core.modules.block.BlockModule;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.hypixel.hytale.component.spatial.SpatialResource;
-import com.hypixel.hytale.math.vector.Vector3d;
-import it.unimi.dsi.fastutil.objects.ObjectList;
+import org.joml.Vector3d;
 import java.lang.reflect.Method;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -138,7 +135,7 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
 
         Trade trade = trades.get(data.tradeIndex);
         if (!ItemModule.exists(trade.inputItemId()) || !ItemModule.exists(trade.outputItemId())) {
-            playerComponent.sendMessage(Message.raw("This trade is invalid."));
+            playerComponent.getPlayerRef().sendMessage(Message.raw("This trade is invalid."));
             return;
         }
 
@@ -148,11 +145,11 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
         if (!isAdminShop) {
             int availableStock = countItemsInContainers(stockContainers, trade.outputItemId());
             if (availableStock < trade.outputQuantity()) {
-                playerComponent.sendMessage(Message.raw("Shop is out of stock."));
+                playerComponent.getPlayerRef().sendMessage(Message.raw("Shop is out of stock."));
                 return;
             }
             if (!hasSpaceForItems(stockContainers, trade.inputItemId(), trade.inputQuantity())) {
-                playerComponent.sendMessage(Message.raw("Shop has no space for that trade."));
+                playerComponent.getPlayerRef().sendMessage(Message.raw("Shop has no space for that trade."));
                 return;
             }
         }
@@ -161,7 +158,7 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
         CombinedItemContainer container = inventory.getCombinedHotbarFirst();
         int playerHas = countItemsInContainer(container, trade.inputItemId());
         if (playerHas < trade.inputQuantity()) {
-            playerComponent.sendMessage(Message.raw("You don't have enough items."));
+            playerComponent.getPlayerRef().sendMessage(Message.raw("You don't have enough items."));
             return;
         }
 
@@ -274,7 +271,7 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
         }
 
         Store<ChunkStore> chunkStore = world.getChunkStore().getStore();
-        SpatialResource<Ref<ChunkStore>, ChunkStore> spatial = chunkStore.getResource(BlockStateModule.get().getItemContainerSpatialResourceType());
+        SpatialResource<Ref<ChunkStore>, ChunkStore> spatial = chunkStore.getResource(BlockModule.get().getItemContainerSpatialResourceType());
         Vector3d position = new Vector3d(
             getCoord(traderTransform.getPosition(), "getX", "x"),
             getCoord(traderTransform.getPosition(), "getY", "y"),
@@ -287,33 +284,22 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
             return scanBlockContainerStates(world, chunkStore, position, horizontalRadius, verticalRadius);
         }
 
-        ObjectList<Ref<ChunkStore>> results = SpatialResource.getThreadLocalReferenceList();
+        List<Ref<ChunkStore>> results = SpatialResource.getThreadLocalReferenceList();
         results.clear();
         spatial.getSpatialStructure().ordered3DAxis(position, horizontalRadius, verticalRadius, horizontalRadius, results);
         if (results.isEmpty()) {
             return scanBlockContainerStates(world, chunkStore, position, horizontalRadius, verticalRadius);
         }
 
-        double minX = position.x - horizontalRadius;
-        double minY = position.y - verticalRadius;
-        double minZ = position.z - horizontalRadius;
-        double maxX = position.x + horizontalRadius;
-        double maxY = position.y + verticalRadius;
-        double maxZ = position.z + horizontalRadius;
         int limit = resolveChestLimit(world);
 
         List<ItemContainer> containers = new ArrayList<>();
         for (Ref<ChunkStore> ref : results) {
-            BlockState state = BlockState.getBlockState(ref, chunkStore);
-            if (state instanceof ItemContainerState containerState) {
-                Vector3d chestPos = containerState.getCenteredBlockPosition();
-                if (chestPos.x >= minX && chestPos.x <= maxX
-                    && chestPos.y >= minY && chestPos.y <= maxY
-                    && chestPos.z >= minZ && chestPos.z <= maxZ) {
-                    containers.add(containerState.getItemContainer());
-                    if (containers.size() >= limit) {
-                        break;
-                    }
+            ItemContainerBlock container = chunkStore.getComponent(ref, ItemContainerBlock.getComponentType());
+            if (container != null) {
+                containers.add(container.getItemContainer());
+                if (containers.size() >= limit) {
+                    break;
                 }
             }
         }
@@ -346,8 +332,8 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
                     if (blockRef == null || !blockRef.isValid()) {
                         continue;
                     }
-                    BlockState state = BlockState.getBlockState(blockRef, chunkStore);
-                    if (state instanceof ItemContainerState containerState) {
+                    ItemContainerBlock containerState = chunkStore.getComponent(blockRef, ItemContainerBlock.getComponentType());
+                    if (containerState != null) {
                         containers.add(containerState.getItemContainer());
                         if (containers.size() >= limit) {
                             return containers;

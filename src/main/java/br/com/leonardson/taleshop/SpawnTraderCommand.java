@@ -3,8 +3,8 @@ package br.com.leonardson.taleshop;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import br.com.leonardson.taleshop.interaction.TraderMessageInteraction;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
+import org.joml.Vector3d;
+import com.hypixel.hytale.math.vector.Rotation3f;
 import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
@@ -59,9 +59,9 @@ public class SpawnTraderCommand extends AbstractPlayerCommand {
 
     TransformComponent spawnTransform = new TransformComponent(
         new Vector3d(transformComponent.getPosition()),
-        new Vector3f(headRotationComponent.getRotation()));
+        new Rotation3f(headRotationComponent.getRotation()));
     Vector3d spawnPosition = new Vector3d(spawnTransform.getPosition()).add(0.0, 0.0, 1.5);
-    Vector3f spawnRotation = new Vector3f(spawnTransform.getRotation());
+    Rotation3f spawnRotation = new Rotation3f(spawnTransform.getRotation());
 
     Pair<Ref<EntityStore>, NPCEntity> npcPair = npcPlugin.spawnEntity(
         store,

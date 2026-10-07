@@ -34,7 +34,7 @@ public class CreateShopCommand extends AbstractShopCommand {
             throw new IllegalArgumentException("Usage: /shop create <shop name>");
         }
 
-        Player player = ctx.senderAs(Player.class);
+        Player player = store.getComponent(ref, Player.getComponentType());
         String ownerId = PlayerIdentity.resolveOwnerId(player);
         String ownerName = PlayerIdentity.resolveDisplayName(player);
 

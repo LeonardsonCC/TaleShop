@@ -123,7 +123,7 @@ public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListE
 
         if ("Create".equals(data.action)) {
             if (adminList && !PermissionUtil.hasAdminManagePermission(player)) {
-                player.sendMessage(Message.raw("You do not have permission to manage admin shops."));
+                player.getPlayerRef().sendMessage(Message.raw("You do not have permission to manage admin shops."));
                 return;
             }
             player.getPageManager().openCustomPage(ref, store, new ShopEditorPage(playerRef, ownerId, null, false, adminList));
@@ -155,7 +155,7 @@ public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListE
 
         if ("Edit".equals(data.action)) {
             if (shop.isAdmin() && !PermissionUtil.hasAdminManagePermission(player)) {
-                player.sendMessage(Message.raw("You do not have permission to edit this shop."));
+                player.getPlayerRef().sendMessage(Message.raw("You do not have permission to edit this shop."));
                 return;
             }
             player.getPageManager().openCustomPage(ref, store, new ShopEditorPage(playerRef, ownerId, shop.name(), false, adminList));
@@ -164,7 +164,7 @@ public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListE
 
         if ("Delete".equals(data.action)) {
             if (shop.isAdmin() && !PermissionUtil.hasAdminManagePermission(player)) {
-                player.sendMessage(Message.raw("You do not have permission to delete this shop."));
+                player.getPlayerRef().sendMessage(Message.raw("You do not have permission to delete this shop."));
                 return;
             }
             player.getPageManager().openCustomPage(ref, store, new ShopDeleteConfirmationPage(playerRef, ownerId, shop.name(), false, adminList));
@@ -173,7 +173,7 @@ public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListE
 
         if ("Npc".equals(data.action)) {
             if (shop.isAdmin() && !PermissionUtil.hasAdminManagePermission(player)) {
-                player.sendMessage(Message.raw("You do not have permission to manage this shop."));
+                player.getPlayerRef().sendMessage(Message.raw("You do not have permission to manage this shop."));
                 return;
             }
             handleNpcToggle(ref, store, player, playerRef, shop);
@@ -190,7 +190,7 @@ public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListE
     ) {
         ShopRegistry registry = resolveRegistry();
         if (registry == null) {
-            player.sendMessage(Message.raw("Shop registry not available."));
+            player.getPlayerRef().sendMessage(Message.raw("Shop registry not available."));
             return;
         }
 
@@ -201,9 +201,9 @@ public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListE
             boolean despawned = TraderNpc.despawnByUuid(store, shop.traderUuid());
             if (despawned) {
                 registry.clearTraderUuid(ownerId, shop.name());
-                player.sendMessage(Message.raw("NPC despawned for " + shop.name()));
+                player.getPlayerRef().sendMessage(Message.raw("NPC despawned for " + shop.name()));
             } else {
-                player.sendMessage(Message.raw("Failed to despawn NPC. It may have already been removed."));
+                player.getPlayerRef().sendMessage(Message.raw("Failed to despawn NPC. It may have already been removed."));
             }
         } else {
             // Check if player has permission to select entity type
@@ -219,12 +219,12 @@ public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListE
                     String traderUuid = traderNpc.getUuid(store);
                     if (traderUuid != null && !traderUuid.isBlank()) {
                         registry.setTraderUuid(ownerId, shop.name(), traderUuid);
-                        player.sendMessage(Message.raw("NPC spawned for " + shop.name()));
+                        player.getPlayerRef().sendMessage(Message.raw("NPC spawned for " + shop.name()));
                     } else {
-                        player.sendMessage(Message.raw("NPC spawned but UUID not available."));
+                        player.getPlayerRef().sendMessage(Message.raw("NPC spawned but UUID not available."));
                     }
                 } catch (IllegalStateException ex) {
-                    player.sendMessage(Message.raw("Failed to spawn NPC: " + ex.getMessage()));
+                    player.getPlayerRef().sendMessage(Message.raw("Failed to spawn NPC: " + ex.getMessage()));
                     return;
                 }
             }

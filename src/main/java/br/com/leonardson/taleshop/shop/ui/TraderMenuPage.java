@@ -142,28 +142,28 @@ public class TraderMenuPage extends InteractiveCustomUIPage<TraderMenuPage.MenuE
     ) {
         ShopRegistry registry = resolveRegistry();
         if (registry == null) {
-            player.sendMessage(Message.raw("Shop registry not available."));
+            player.getPlayerRef().sendMessage(Message.raw("Shop registry not available."));
             return;
         }
 
         Shop shop = registry.getShop(ownerId, shopName);
         if (shop == null) {
-            player.sendMessage(Message.raw("Shop not found."));
+            player.getPlayerRef().sendMessage(Message.raw("Shop not found."));
             return;
         }
 
         String traderUuid = shop.traderUuid();
         if (traderUuid == null || traderUuid.isBlank()) {
-            player.sendMessage(Message.raw("No trader to despawn."));
+            player.getPlayerRef().sendMessage(Message.raw("No trader to despawn."));
             return;
         }
 
         boolean despawned = TraderNpc.despawnByUuid(store, traderUuid);
         if (despawned) {
             registry.clearTraderUuid(ownerId, shopName);
-            player.sendMessage(Message.raw("Trader despawned successfully."));
+            player.getPlayerRef().sendMessage(Message.raw("Trader despawned successfully."));
         } else {
-            player.sendMessage(Message.raw("Failed to despawn trader."));
+            player.getPlayerRef().sendMessage(Message.raw("Failed to despawn trader."));
         }
         
         // Redirect to shop list

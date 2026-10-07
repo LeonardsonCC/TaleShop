@@ -9,8 +9,8 @@ import javax.annotation.Nonnull;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
+import org.joml.Vector3d;
+import com.hypixel.hytale.math.vector.Rotation3f;
 import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.Frozen;
@@ -64,9 +64,9 @@ public class TraderNpc {
 
         TransformComponent spawnTransform = new TransformComponent(
                 new Vector3d(transformComponent.getPosition()),
-                new Vector3f(transformComponent.getRotation()));
+                new Rotation3f(transformComponent.getRotation()));
         Vector3d spawnPosition = new Vector3d(spawnTransform.getPosition());
-        Vector3f spawnRotation = new Vector3f(spawnTransform.getRotation());
+        Rotation3f spawnRotation = new Rotation3f(spawnTransform.getRotation());
 
         Pair<Ref<EntityStore>, NPCEntity> npcPair = npcPlugin.spawnEntity(
                 store,

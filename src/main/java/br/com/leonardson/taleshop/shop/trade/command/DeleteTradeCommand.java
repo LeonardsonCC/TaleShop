@@ -34,7 +34,7 @@ public class DeleteTradeCommand extends AbstractShopCommand {
         String shopName = argName.get(ctx);
         int tradeId = tradeIdArg.get(ctx);
 
-        Player player = ctx.senderAs(Player.class);
+        Player player = store.getComponent(ref, Player.getComponentType());
         String ownerId = PlayerIdentity.resolveOwnerId(player);
         
         shopRegistry.removeTrade(ownerId, shopName, tradeId);

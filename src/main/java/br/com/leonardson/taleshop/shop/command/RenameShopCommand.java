@@ -34,7 +34,7 @@ public class RenameShopCommand extends AbstractShopCommand {
         String name = argName.get(ctx);
         String newName = argNewName.get(ctx);
 
-        Player player = ctx.senderAs(Player.class);
+        Player player = store.getComponent(ref, Player.getComponentType());
         String ownerId = PlayerIdentity.resolveOwnerId(player);
 
         Shop shop = shopRegistry.renameShop(ownerId, name, newName);

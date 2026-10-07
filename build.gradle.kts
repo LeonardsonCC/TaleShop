@@ -1,10 +1,10 @@
 plugins {
     `maven-publish`
-    id("hytale-mod") version "0.+"
+    id("hytale-mod") version "0.8.1"
 }
 
 group = "br.com.leonardson"
-version = "2.0.1"
+version = "2.0.2"
 val javaVersion = 25
 
 repositories {
@@ -21,6 +21,12 @@ dependencies {
 }
 
 hytale {
+    version.set("0.6.8")
+    providers.gradleProperty("hytaleServerJar").orNull?.let { localJar ->
+        serverJar.set(file(localJar))
+        serverJarSource.set(dev.hytalemods.gradle.hytalemod.ServerJarSource.GAME_FILES)
+    }
+
     // uncomment if you want to add the Assets.zip file to your external libraries;
     // ⚠️ CAUTION, this file is very big and might make your IDE unresponsive for some time!
     //

@@ -30,7 +30,7 @@ public class DeleteShopCommand extends AbstractShopCommand {
     protected void execute(@NotNull CommandContext ctx, @NotNull Store<EntityStore> store, @NotNull Ref<EntityStore> ref, @NotNull PlayerRef playerRef, @NotNull World world) {
         String name = argName.get(ctx);
 
-        Player player = ctx.senderAs(Player.class);
+        Player player = store.getComponent(ref, Player.getComponentType());
         String ownerId = PlayerIdentity.resolveOwnerId(player);
 
         shopRegistry.deleteShop(ownerId, name);

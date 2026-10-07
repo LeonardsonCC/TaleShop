@@ -15,9 +15,9 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Transform;
-import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.math.vector.Vector3f;
-import com.hypixel.hytale.math.vector.Vector3i;
+import org.joml.Vector3d;
+import com.hypixel.hytale.math.vector.Rotation3f;
+import org.joml.Vector3i;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.protocol.packets.interface_.Page;
@@ -76,7 +76,7 @@ public class EntitySelectionPage extends InteractiveCustomUIPage<EntitySelection
     @Nullable
     private Ref<EntityStore> modelPreview;
     private Vector3d position;
-    private Vector3f rotation;
+    private Rotation3f rotation;
     private float currentRotationOffset = 0.0F;
 
     public EntitySelectionPage(@Nonnull PlayerRef playerRef, @Nonnull String ownerId, @Nonnull String shopName) {
@@ -268,13 +268,13 @@ public class EntitySelectionPage extends InteractiveCustomUIPage<EntitySelection
         
         ShopRegistry registry = resolveRegistry();
         if (registry == null) {
-            player.sendMessage(Message.raw("Shop registry not available."));
+            player.getPlayerRef().sendMessage(Message.raw("Shop registry not available."));
             return;
         }
 
         Shop shop = registry.getShop(ownerId, shopName);
         if (shop == null) {
-            player.sendMessage(Message.raw("Shop not found."));
+            player.getPlayerRef().sendMessage(Message.raw("Shop not found."));
             return;
         }
 
@@ -294,12 +294,12 @@ public class EntitySelectionPage extends InteractiveCustomUIPage<EntitySelection
             String traderUuid = traderNpc.getUuid(store);
             if (traderUuid != null && !traderUuid.isBlank()) {
                 registry.setTraderUuid(ownerId, shop.name(), traderUuid);
-                player.sendMessage(Message.raw("Trader spawned as " + this.selectedNpcRole + " for " + shop.name()));
+                player.getPlayerRef().sendMessage(Message.raw("Trader spawned as " + this.selectedNpcRole + " for " + shop.name()));
             } else {
-                player.sendMessage(Message.raw("Trader spawned but UUID not available."));
+                player.getPlayerRef().sendMessage(Message.raw("Trader spawned but UUID not available."));
             }
         } catch (IllegalStateException ex) {
-            player.sendMessage(Message.raw("Failed to spawn trader: " + ex.getMessage()));
+            player.getPlayerRef().sendMessage(Message.raw("Failed to spawn trader: " + ex.getMessage()));
             return;
         }
         
@@ -324,8 +324,8 @@ public class EntitySelectionPage extends InteractiveCustomUIPage<EntitySelection
         }
         
         Vector3d playerPosition = transformComponent.getPosition();
-        Vector3f headRotation = headRotationComponent.getRotation();
-        Vector3d direction = Transform.getDirection(headRotation.getPitch(), headRotation.getYaw());
+        Rotation3f headRotation = headRotationComponent.getRotation();
+        Vector3d direction = Transform.getDirection(headRotation.pitch(), headRotation.yaw());
         
         // Try to find target location in front of player
         Vector3d lookTarget = TargetUtil.getTargetLocation(ref, LOOK_RAYCAST_DISTANCE, store);
@@ -335,7 +335,7 @@ public class EntitySelectionPage extends InteractiveCustomUIPage<EntitySelection
             previewPosition = lookTarget;
         } else {
             // Fallback: place at fixed distance ahead
-            Vector3d aheadPosition = playerPosition.clone().add(direction.clone().scale(LOOK_RAYCAST_DISTANCE));
+            Vector3d aheadPosition = new Vector3d(playerPosition).add(new Vector3d(direction).mul(LOOK_RAYCAST_DISTANCE));
             World world = store.getExternalData().getWorld();
             Vector3i groundTarget = TargetUtil.getTargetBlock(
                 world,
@@ -357,9 +357,9 @@ public class EntitySelectionPage extends InteractiveCustomUIPage<EntitySelection
         }
         
         // Calculate rotation to face player
-        Vector3d relativePos = playerPosition.clone().subtract(previewPosition);
-        relativePos.setY(0.0);
-        Vector3f previewRotation = Vector3f.lookAt(relativePos);
+        Vector3d relativePos = new Vector3d(playerPosition).sub(previewPosition);
+        relativePos.y = 0.0;
+        Rotation3f previewRotation = Rotation3f.lookAt(relativePos);
         
         this.position = previewPosition;
         this.rotation = previewRotation;

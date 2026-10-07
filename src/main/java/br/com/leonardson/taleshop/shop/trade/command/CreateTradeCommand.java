@@ -44,7 +44,7 @@ public class CreateTradeCommand extends AbstractShopCommand {
         String outputItem = outputItemArg.get(ctx);
         int outputQty = outputQtyArg.get(ctx);
 
-        Player player = ctx.senderAs(Player.class);
+        Player player = store.getComponent(ref, Player.getComponentType());
         String ownerId = PlayerIdentity.resolveOwnerId(player);
 
         Trade trade = shopRegistry.addTrade(ownerId, shopName, inputItem, inputQty, outputItem, outputQty);

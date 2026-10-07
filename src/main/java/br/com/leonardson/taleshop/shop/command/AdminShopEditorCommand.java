@@ -26,7 +26,7 @@ public class AdminShopEditorCommand extends AbstractShopCommand {
         @NotNull PlayerRef playerRef,
         @NotNull World world
     ) {
-        Player player = ctx.senderAs(Player.class);
+        Player player = store.getComponent(ref, Player.getComponentType());
         if (player == null) {
             return;
         }

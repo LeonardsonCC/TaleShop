@@ -116,7 +116,7 @@ public class PlayerInventoryPage extends InteractiveCustomUIPage<PlayerInventory
             return;
         }
 
-        int capacity = player.getInventory().getCombinedEverything().getCapacity();
+        int capacity = player.getInventory().getCombinedArmorHotbarUtilityStorage().getCapacity();
         if (slotIndex < 0 || slotIndex >= capacity) {
             return;
         }
@@ -147,7 +147,7 @@ public class PlayerInventoryPage extends InteractiveCustomUIPage<PlayerInventory
     }
 
     private ItemGridSlot[] buildSlots(@Nonnull Inventory inventory) {
-        ItemContainer combinedContainer = inventory.getCombinedEverything();
+        ItemContainer combinedContainer = inventory.getCombinedArmorHotbarUtilityStorage();
         int capacity = combinedContainer.getCapacity();
         ItemGridSlot[] slots = new ItemGridSlot[INVENTORY_GRID_CAPACITY];
 
@@ -176,7 +176,7 @@ public class PlayerInventoryPage extends InteractiveCustomUIPage<PlayerInventory
     private ItemGridSlot[] buildSelectionSlot(@Nonnull Inventory inventory, int selectedIndex) {
         ItemGridSlot slot = new ItemGridSlot();
         if (selectedIndex != NO_SELECTION) {
-            ItemContainer combinedContainer = inventory.getCombinedEverything();
+            ItemContainer combinedContainer = inventory.getCombinedArmorHotbarUtilityStorage();
             if (selectedIndex >= 0 && selectedIndex < combinedContainer.getCapacity()) {
                 ItemStack itemStack = combinedContainer.getItemStack((short)selectedIndex);
                 if (isRenderableItem(itemStack)) {
@@ -194,7 +194,7 @@ public class PlayerInventoryPage extends InteractiveCustomUIPage<PlayerInventory
             return 0;
         }
 
-        ItemContainer combinedContainer = inventory.getCombinedEverything();
+        ItemContainer combinedContainer = inventory.getCombinedArmorHotbarUtilityStorage();
         if (selectedIndex < 0 || selectedIndex >= combinedContainer.getCapacity()) {
             return 0;
         }
@@ -213,7 +213,7 @@ public class PlayerInventoryPage extends InteractiveCustomUIPage<PlayerInventory
             return "None";
         }
 
-        ItemContainer combinedContainer = inventory.getCombinedEverything();
+        ItemContainer combinedContainer = inventory.getCombinedArmorHotbarUtilityStorage();
         if (selectedIndex < 0 || selectedIndex >= combinedContainer.getCapacity()) {
             return "None";
         }

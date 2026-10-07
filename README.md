@@ -22,7 +22,7 @@ A Hytale server plugin that enables players to create and manage custom trading 
 
 ## Installation
 
-1. Download the latest `TaleShop-2.0.1.jar` from releases
+1. Download the latest `TaleShop-2.0.2.jar` from releases
 2. Place the JAR file in your server's `mods/` directory
 3. Start or restart your server
 4. Configuration will be auto-generated at `run/mods/Leonardson_TaleShop/TaleShopConfig.json`
@@ -33,7 +33,21 @@ A Hytale server plugin that enables players to create and manage custom trading 
 ./gradlew build
 ```
 
-The compiled JAR will be available at `build/libs/TaleShop-2.0.1.jar`
+The compiled JAR is `build/libs/TaleShop-2.0.2.jar`, targeting Hytale server `0.6.8`.
+
+To compile against a specific local installation (requires a JDK, not only a JRE):
+
+```bash
+./gradlew build -PhytaleServerJar=/absolute/path/to/Server/HytaleServer.jar
+```
+
+Install only the main JAR, excluding `-sources.jar`, into the game's `UserData/Mods` folder.
+Reload the world and enable TaleShop in its mod settings. For manual validation, open
+`/taleshop editor`, create a shop and a trade using inventory items, spawn its NPC,
+and stock a chest within two blocks. Test successful trades, insufficient payment,
+missing stock, full inventories, and persistence after reloading. Use a second player
+to test a player-owned shop's buyer UI; an owner's interaction opens management.
+
 
 ## Configuration
 

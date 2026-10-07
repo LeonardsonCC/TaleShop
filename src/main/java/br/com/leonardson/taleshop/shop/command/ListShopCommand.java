@@ -25,7 +25,7 @@ public class ListShopCommand extends AbstractShopCommand {
 
     @Override
     protected void execute(@NotNull CommandContext ctx, @NotNull Store<EntityStore> store, @NotNull Ref<EntityStore> ref, @NotNull PlayerRef playerRef, @NotNull World world) {
-        Player player = ctx.senderAs(Player.class);
+        Player player = store.getComponent(ref, Player.getComponentType());
         String ownerId = PlayerIdentity.resolveOwnerId(player);
 
         List<Shop> shops = shopRegistry.listShops(ownerId);

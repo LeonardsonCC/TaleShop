@@ -44,7 +44,7 @@ public class OpenShopCommand extends AbstractShopCommand {
             throw new IllegalArgumentException("Usage: /shop open <owner name> <shop name>");
         }
 
-        Player player = ctx.senderAs(Player.class);
+        Player player = store.getComponent(ref, Player.getComponentType());
         String currentPlayerId = PlayerIdentity.resolveOwnerId(player);
 
         // Find the shop by owner name and shop name

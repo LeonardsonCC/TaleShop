@@ -130,14 +130,14 @@ public class ShopEditorPage extends InteractiveCustomUIPage<ShopEditorPage.ShopE
         @Nullable String shopName
     ) {
         if (shopName == null || shopName.trim().isBlank()) {
-            player.sendMessage(Message.raw("Shop name cannot be empty."));
+            player.getPlayerRef().sendMessage(Message.raw("Shop name cannot be empty."));
             return;
         }
 
         String trimmedName = shopName.trim();
         ShopRegistry registry = resolveRegistry();
         if (registry == null) {
-            player.sendMessage(Message.raw("Shop registry not available."));
+            player.getPlayerRef().sendMessage(Message.raw("Shop registry not available."));
             return;
         }
 
@@ -145,15 +145,15 @@ public class ShopEditorPage extends InteractiveCustomUIPage<ShopEditorPage.ShopE
             if (isEditMode) {
                 Shop existing = registry.getShop(ownerId, currentShopName);
                 if (existing.isAdmin() && !PermissionUtil.hasAdminManagePermission(player)) {
-                    player.sendMessage(Message.raw("You do not have permission to edit this shop."));
+                    player.getPlayerRef().sendMessage(Message.raw("You do not have permission to edit this shop."));
                     return;
                 }
                 // Rename existing shop
                 registry.renameShop(ownerId, currentShopName, trimmedName);
-                player.sendMessage(Message.raw("Shop renamed to '" + trimmedName + "'."));
+                player.getPlayerRef().sendMessage(Message.raw("Shop renamed to '" + trimmedName + "'."));
             } else {
                 if (createAdminShop && !PermissionUtil.hasAdminManagePermission(player)) {
-                    player.sendMessage(Message.raw("You do not have permission to create admin shops."));
+                    player.getPlayerRef().sendMessage(Message.raw("You do not have permission to create admin shops."));
                     return;
                 }
                 // Create new shop
@@ -161,7 +161,7 @@ public class ShopEditorPage extends InteractiveCustomUIPage<ShopEditorPage.ShopE
                     ? AdminShopAccess.OWNER_NAME
                     : PlayerIdentity.resolveDisplayName(player);
                 Shop shop = registry.createShop(ownerId, ownerName, trimmedName, createAdminShop);
-                player.sendMessage(Message.raw("Shop '" + shop.name() + "' created successfully."));
+                player.getPlayerRef().sendMessage(Message.raw("Shop '" + shop.name() + "' created successfully."));
             }
             
             // Return to appropriate page
@@ -173,10 +173,10 @@ public class ShopEditorPage extends InteractiveCustomUIPage<ShopEditorPage.ShopE
                 player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId, createAdminShop));
             }
         } catch (IllegalArgumentException ex) {
-            player.sendMessage(Message.raw("Error: " + ex.getMessage()));
+            player.getPlayerRef().sendMessage(Message.raw("Error: " + ex.getMessage()));
             ex.printStackTrace();
         } catch (Exception ex) {
-            player.sendMessage(Message.raw("An unexpected error occurred: " + ex.getMessage()));
+            player.getPlayerRef().sendMessage(Message.raw("An unexpected error occurred: " + ex.getMessage()));
             ex.printStackTrace();
         }
     }

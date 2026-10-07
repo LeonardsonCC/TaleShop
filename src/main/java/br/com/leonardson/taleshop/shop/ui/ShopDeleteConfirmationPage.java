@@ -114,14 +114,14 @@ public class ShopDeleteConfirmationPage extends InteractiveCustomUIPage<ShopDele
     ) {
         ShopRegistry registry = resolveRegistry();
         if (registry == null) {
-            player.sendMessage(Message.raw("Shop registry not available."));
+            player.getPlayerRef().sendMessage(Message.raw("Shop registry not available."));
             return;
         }
 
         try {
             Shop shop = registry.getShop(ownerId, shopName);
             if (shop.isAdmin() && !PermissionUtil.hasAdminManagePermission(player)) {
-                player.sendMessage(Message.raw("You do not have permission to delete this shop."));
+                player.getPlayerRef().sendMessage(Message.raw("You do not have permission to delete this shop."));
                 player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId, adminList));
                 return;
             }
@@ -133,15 +133,15 @@ public class ShopDeleteConfirmationPage extends InteractiveCustomUIPage<ShopDele
             
             // Delete the shop
             registry.deleteShop(ownerId, shopName);
-            player.sendMessage(Message.raw("Shop '" + shopName + "' has been deleted."));
+            player.getPlayerRef().sendMessage(Message.raw("Shop '" + shopName + "' has been deleted."));
             
             // Always redirect to shop list after delete
             player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId, adminList));
         } catch (IllegalArgumentException ex) {
-            player.sendMessage(Message.raw("Error: " + ex.getMessage()));
+            player.getPlayerRef().sendMessage(Message.raw("Error: " + ex.getMessage()));
             player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId, adminList));
         } catch (Exception ex) {
-            player.sendMessage(Message.raw("An unexpected error occurred: " + ex.getMessage()));
+            player.getPlayerRef().sendMessage(Message.raw("An unexpected error occurred: " + ex.getMessage()));
             player.getPageManager().openCustomPage(ref, store, new ShopListPage(playerRef, ownerId, adminList));
         }
     }
