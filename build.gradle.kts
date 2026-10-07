@@ -1,40 +1,45 @@
 plugins {
+    java
+    idea
     `maven-publish`
-    id("hytale-mod") version "0.8.1"
+    id("hytale-mod") version "0.8.1" apply false
 }
 
 group = "br.com.leonardson"
 version = "2.0.2"
 val javaVersion = 25
+val runningOnCI = providers.environmentVariable("CI").orNull.toBoolean()
+val localServerJar = providers.gradleProperty("hytaleServerJar").orNull
+val useLocalHytalePlugin = !runningOnCI || localServerJar != null
+if (useLocalHytalePlugin) {
+    apply(plugin = "hytale-mod")
+}
 
 repositories {
     mavenCentral()
+    maven("https://maven.hytale.com/release")
     maven("https://maven.hytale-mods.dev/releases") {
         name = "HytaleModdingReleases"
     }
 }
 
 dependencies {
+    if (!useLocalHytalePlugin) {
+        compileOnly("com.hypixel.hytale:Server:0.6.8")
+    }
     compileOnly(libs.jetbrains.annotations)
     compileOnly(libs.jspecify)
     implementation("org.xerial:sqlite-jdbc:3.51.2.0")
 }
 
-hytale {
-    version.set("0.6.8")
-    providers.gradleProperty("hytaleServerJar").orNull?.let { localJar ->
-        serverJar.set(file(localJar))
-        serverJarSource.set(dev.hytalemods.gradle.hytalemod.ServerJarSource.GAME_FILES)
+if (useLocalHytalePlugin) {
+    extensions.configure<dev.hytalemods.gradle.hytalemod.HytaleExtension> {
+        version.set("0.6.8")
+        localServerJar?.let { localJar ->
+            serverJar.set(file(localJar))
+            serverJarSource.set(dev.hytalemods.gradle.hytalemod.ServerJarSource.GAME_FILES)
+        }
     }
-
-    // uncomment if you want to add the Assets.zip file to your external libraries;
-    // ⚠️ CAUTION, this file is very big and might make your IDE unresponsive for some time!
-    //
-    // addAssetsDependency = true
-
-    // uncomment if you want to develop your mod against the pre-release version of the game.
-    //
-    // updateChannel = "pre-release"
 }
 
 java {
@@ -93,7 +98,6 @@ publishing {
 }
 
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
-val runningOnCI = providers.environmentVariable("CI").orNull.toBoolean()
 idea {
     module {
         isDownloadSources = !runningOnCI
