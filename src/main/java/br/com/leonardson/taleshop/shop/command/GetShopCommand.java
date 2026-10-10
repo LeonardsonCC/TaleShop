@@ -38,6 +38,6 @@ public class GetShopCommand extends AbstractShopCommand {
         String ownerId = PlayerIdentity.resolveOwnerId(player);
 
         Shop shop = shopRegistry.getShop(ownerId, name);
-        ctx.sendMessage(Message.raw("Shop: " + shop.name() + " | Trades: " + shop.trades().size() + "/" + ShopRegistry.MAX_TRADES));
+        ctx.sendMessage(Message.raw("Shop: " + shop.name() + " | Trades: " + shop.trades().size() + "/" + shopRegistry.getMaxTradesPerShop()));
     }
 }
