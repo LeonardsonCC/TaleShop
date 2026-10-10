@@ -13,20 +13,24 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public class ShopRegistry {
-    public static final int MAX_TRADES = 20;
-
     private final ShopStorage storage;
+    private final int maxTradesPerShop;
 
     public ShopRegistry(@Nonnull Path dataDirectory) {
         this(dataDirectory, new PluginConfig());
     }
 
     public ShopRegistry(@Nonnull Path dataDirectory, @Nonnull PluginConfig config) {
+        this.maxTradesPerShop = config.getMaxTradesPerShop();
         if (config.isUsingSqliteStorage()) {
-            this.storage = new SqliteShopStorage(dataDirectory);
+            this.storage = new SqliteShopStorage(dataDirectory, maxTradesPerShop);
         } else {
-            this.storage = new JsonShopStorage(dataDirectory);
+            this.storage = new JsonShopStorage(dataDirectory, maxTradesPerShop);
         }
+    }
+
+    public int getMaxTradesPerShop() {
+        return maxTradesPerShop;
     }
 
     @Nonnull

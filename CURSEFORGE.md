@@ -180,13 +180,15 @@ The plugin creates a config file at `run/mods/Leonardson_TaleShop/TaleShopConfig
 {
   "StorageBackend": "JSON",
   "StorageDistanceMode": "FIXED",
-  "FixedStorageDistance": 2
+  "FixedStorageDistance": 2,
+  "MaxTradesPerShop": 20
 }
 ```
 
 - **StorageBackend**: `JSON` (default) or `SQLITE`
 - **StorageDistanceMode**: `FIXED` (use configured distance) or `WORKBENCH` (match game's crafting bench distance)
 - **FixedStorageDistance**: How many blocks away from the NPC to search for chests (default: 2)
+- **MaxTradesPerShop**: Maximum trades allowed per shop (default: 20, minimum: 1)
 
 ## Tips & Tricks
 
@@ -197,7 +199,7 @@ The plugin creates a config file at `run/mods/Leonardson_TaleShop/TaleShopConfig
 - **Stock Management**: Keep your chests stocked - trades show as "Out of Stock" when empty
 - **Multiple Shops**: Create different shops for different item categories (Weapons, Potions, Resources, etc.)
 - **Shop Names**: Use clear, descriptive names - they're shown to all players
-- **Trade Limits**: Each shop supports up to 20 different trades
+- **Trade Limits**: Configure the maximum trades per shop with `MaxTradesPerShop` (default: 20)
 - **Pick from Inventory**: When adding trades in the editor, you can select items directly from your inventory
 
 ## Common Questions

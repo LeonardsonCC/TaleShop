@@ -60,7 +60,8 @@ to test a player-owned shop's buyer UI; an owner's interaction opens management.
 {
   "StorageBackend": "JSON",
   "StorageDistanceMode": "FIXED",
-  "FixedStorageDistance": 2
+  "FixedStorageDistance": 2,
+  "MaxTradesPerShop": 20
 }
 ```
 
@@ -71,6 +72,7 @@ to test a player-owned shop's buyer UI; an owner's interaction opens management.
 | `StorageBackend` | String | `"JSON"` | Storage backend: `"JSON"` or `"SQLITE"` |
 | `StorageDistanceMode` | String | `"FIXED"` | Storage search mode: `"FIXED"` or `"WORKBENCH"` |
 | `FixedStorageDistance` | Integer | `2` | Radius in blocks to search for storage (minimum: 1) |
+| `MaxTradesPerShop` | Integer | `20` | Maximum trades allowed in each shop (minimum: 1) |
 
 ### Storage Distance Modes
 
@@ -99,6 +101,8 @@ to test a player-owned shop's buyer UI; an owner's interaction opens management.
   "FixedStorageDistance": 2
 }
 ```
+
+Set `MaxTradesPerShop` in `TaleShopConfig.json` to raise or lower the per-shop trade limit. The value takes effect after restarting the server.
 
 ## Permissions
 
@@ -141,7 +145,7 @@ All commands use the base `/taleshop` command with various subcommands. Aliases:
 
 | Command | Description | Usage | Permission |
 |---------|-------------|-------|------------|
-| `/taleshop trade create <shopName> <inputItem> <inputQty> <outputItem> <outputQty>` | Create a new trade in the shop (max 20 per shop) | `/taleshop trade create MyShop Ingredient_Gold 10 Tool_IronSword 1` | `taleshop.shop.manage` |
+| `/taleshop trade create <shopName> <inputItem> <inputQty> <outputItem> <outputQty>` | Create a new trade in the shop (up to the configured limit) | `/taleshop trade create MyShop Ingredient_Gold 10 Tool_IronSword 1` | `taleshop.shop.manage` |
 | `/taleshop trade list <shopName>` | List all trades in a shop | `/taleshop trade list MyShop` | `taleshop.shop.manage` |
 | `/taleshop trade update <shopName> <tradeId> <inputItem> <inputQty> <outputItem> <outputQty>` | Update an existing trade | `/taleshop trade update MyShop 1 Ingredient_Gold 5 Tool_IronSword 1` | `taleshop.shop.manage` |
 | `/taleshop trade delete <shopName> <tradeId>` | Delete a trade from a shop | `/taleshop trade delete MyShop 1` | `taleshop.shop.manage` |
@@ -297,7 +301,7 @@ The plugin automatically migrates from legacy `shops.properties` format if found
 
 ## Limitations
 
-- Maximum of **20 trades** per shop
+- Maximum trades per shop is configurable with `MaxTradesPerShop` (default: 20)
 - Shop names are case-insensitive
 - Storage containers must be within the configured distance of the NPC
 - Minimum storage distance is 1 block
