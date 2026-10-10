@@ -23,11 +23,17 @@ public class JsonShopStorage implements ShopStorage {
 
     private final Path dataDirectory;
     private final Path storageFile;
+    private final int maxTradesPerShop;
     private final Map<String, Map<String, JsonShop>> shopsByOwner = new HashMap<>();
 
     public JsonShopStorage(@Nonnull Path dataDirectory) {
+        this(dataDirectory, 20);
+    }
+
+    public JsonShopStorage(@Nonnull Path dataDirectory, int maxTradesPerShop) {
         this.dataDirectory = dataDirectory;
         this.storageFile = dataDirectory.resolve("shops.json");
+        this.maxTradesPerShop = Math.max(1, maxTradesPerShop);
         load();
     }
 
@@ -235,8 +241,8 @@ public class JsonShopStorage implements ShopStorage {
         validateQuantity(outputQuantity);
 
         JsonShop shop = getShopInternal(ownerId, shopName);
-        if (shop.trades.size() >= ShopRegistry.MAX_TRADES) {
-            throw new IllegalArgumentException("Shop already has the maximum of " + ShopRegistry.MAX_TRADES + " trades.");
+        if (shop.trades.size() >= maxTradesPerShop) {
+            throw new IllegalArgumentException("Shop already has the maximum of " + maxTradesPerShop + " trades.");
         }
 
         int tradeId = nextTradeId(shop.trades);
