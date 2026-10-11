@@ -9,6 +9,8 @@ group = "br.com.leonardson"
 version = "2.0.2"
 val javaVersion = 25
 val runningOnCI = providers.environmentVariable("CI").orNull.toBoolean()
+val hytaleVersion = providers.gradleProperty("hytale_version").get()
+val hytaleRepository = providers.gradleProperty("hytale_repository").get()
 val localServerJar = providers.gradleProperty("hytaleServerJar").orNull
 val useLocalHytalePlugin = !runningOnCI || localServerJar != null
 if (useLocalHytalePlugin) {
@@ -17,7 +19,7 @@ if (useLocalHytalePlugin) {
 
 repositories {
     mavenCentral()
-    maven("https://maven.hytale.com/release")
+    maven(hytaleRepository)
     maven("https://maven.hytale-mods.dev/releases") {
         name = "HytaleModdingReleases"
     }
@@ -25,16 +27,25 @@ repositories {
 
 dependencies {
     if (!useLocalHytalePlugin) {
-        compileOnly("com.hypixel.hytale:Server:0.6.8")
+        compileOnly("com.hypixel.hytale:Server:$hytaleVersion")
     }
     compileOnly(libs.jetbrains.annotations)
     compileOnly(libs.jspecify)
     implementation("org.xerial:sqlite-jdbc:3.51.2.0")
+    testImplementation("com.hypixel.hytale:Server:$hytaleVersion")
+    testImplementation(platform("org.junit:junit-bom:5.12.2"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.test {
+    useJUnitPlatform()
+    systemProperty("java.util.logging.manager", "com.hypixel.hytale.logger.backend.HytaleLogManager")
 }
 
 if (useLocalHytalePlugin) {
     extensions.configure<dev.hytalemods.gradle.hytalemod.HytaleExtension> {
-        version.set("0.6.8")
+        version.set(hytaleVersion)
         localServerJar?.let { localJar ->
             serverJar.set(file(localJar))
             serverJarSource.set(dev.hytalemods.gradle.hytalemod.ServerJarSource.GAME_FILES)

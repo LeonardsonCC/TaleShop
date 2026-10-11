@@ -41,6 +41,46 @@ To compile against a specific local installation (requires a JDK, not only a JRE
 ./gradlew build -PhytaleServerJar=/absolute/path/to/Server/HytaleServer.jar
 ```
 
+### Update 7 / Chapter 1 preparation
+
+The default target remains `0.6.8`. The server dependency version and Maven
+repository can be overridden with `hytale_version` and `hytale_repository`.
+The manifest's `server_version` is separate; update it to match the tested server.
+When supplying a local server JAR, also override `server_version` accordingly.
+
+On October 11, 2026, the plugin built successfully against the official Maven
+pre-release `0.7.0-pre.5.1` with this command:
+
+```bash
+CI=true ./gradlew clean build \
+  -Phytale_version=0.7.0-pre.5.1 \
+  -Phytale_repository=https://maven.hytale.com/pre-release \
+  '-Pserver_version==0.7.0-pre.5.1'
+```
+
+Here `CI=true` selects the Maven dependency instead of the locally installed
+game server. The doubled `=` passes the manifest constraint `=0.7.0-pre.5.1`.
+This command writes the usual `build/libs/TaleShop-2.0.2.jar`; keep pre-release
+artifacts separate from stable releases. Run `./gradlew clean build` to rebuild
+for the default target before installing on a stable server.
+
+Compilation passed with 70 removal warnings, including `Player.getPlayerRef()`,
+`Inventory` and combined inventory accessors. Automated configuration and storage
+tests do not cover in-game behavior. Runtime compatibility and the final Update 7 build are still
+unverified. The nearby chest fallback already uses `BlockModule.getBlockEntity`,
+which is retained in the [official Update 7 API notes](https://hytale.com/news/2026/9/pre-release-patch-notes-update-7).
+
+Before releasing support for Update 7:
+
+- Compile against the final published server version and set its manifest constraint.
+- Use a copy of a world to test loading existing shops with both JSON and SQLite.
+  The pre-release notes warn that newer chunk section data cannot be read by older servers.
+- Check shop editing, NPC spawning, despawning, interaction and permissions with an owner and a buyer.
+- Check chest stock discovery in `FIXED` and `WORKBENCH` modes, including negative
+  heights in cubic worlds, and test successful trades, missing payment/stock,
+  full player inventories and full payment chests.
+- Check admin shops, item selection and persistence after restarting the server.
+
 Install only the main JAR, excluding `-sources.jar`, into the game's `UserData/Mods` folder.
 Reload the world and enable TaleShop in its mod settings. For manual validation, open
 `/taleshop editor`, create a shop and a trade using inventory items, spawn its NPC,
@@ -103,6 +143,10 @@ to test a player-owned shop's buyer UI; an owner's interaction opens management.
 ```
 
 Set `MaxTradesPerShop` in `TaleShopConfig.json` to raise or lower the per-shop trade limit. The value takes effect after restarting the server.
+For example, use `"MaxTradesPerShop": 50` to allow 50 trades per shop. Values below
+1 are clamped to 1. Lowering the limit preserves existing trades; adding new ones
+is blocked until the shop's count is below the configured limit. Existing trades
+can still be edited or deleted.
 
 ## Permissions
 
