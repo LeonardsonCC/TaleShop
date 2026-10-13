@@ -16,13 +16,13 @@ A Hytale server plugin that enables players to create and manage custom trading 
 
 ## Requirements
 
-- Hytale Server with NPC Plugin support
+- Hytale Server `0.7.0` (Update 7 / Chapter I) with NPC Plugin support
 - Java 25 or higher
 - Permission: `taleshop.shop.manage` (required for all shop management commands)
 
 ## Installation
 
-1. Download the latest `TaleShop-2.0.2.jar` from releases
+1. Download the latest `TaleShop-2.1.0.jar` from releases
 2. Place the JAR file in your server's `mods/` directory
 3. Start or restart your server
 4. Configuration will be auto-generated at `run/mods/Leonardson_TaleShop/TaleShopConfig.json`
@@ -33,13 +33,51 @@ A Hytale server plugin that enables players to create and manage custom trading 
 ./gradlew build
 ```
 
-The compiled JAR is `build/libs/TaleShop-2.0.2.jar`, targeting Hytale server `0.6.8`.
+The compiled JAR is `build/libs/TaleShop-2.1.0.jar`, targeting Hytale server `0.7.0`.
 
 To compile against a specific local installation (requires a JDK, not only a JRE):
 
 ```bash
 ./gradlew build -PhytaleServerJar=/absolute/path/to/Server/HytaleServer.jar
 ```
+
+### Update 7 / Chapter I compatibility
+
+TaleShop 2.1.0 targets the final Hytale `0.7.0` release. The server dependency
+version and Maven repository can be overridden with `hytale_version` and
+`hytale_repository`. The manifest's `ServerVersion` defaults to an exact match
+for `hytale_version`, so compilation and declared compatibility stay aligned.
+An explicit `server_version` property can override that constraint.
+
+Local builds and CI compile and run tests against the same selected server
+artifact. If you pass `hytaleServerJar`, both use that JAR; set `hytale_version`
+to its version so the generated manifest also matches it.
+
+```bash
+CI=true ./gradlew clean build
+```
+
+Configuration and storage regression tests cover the configurable trade limit
+in JSON and SQLite, including preservation of existing trades after reducing
+the limit. An isolated classloader test checks that the distributed JAR can open
+SQLite without Gradle's dependency classpath.
+
+On October 13, 2026, all 14 tests passed against final server `0.7.0`. The packaged
+mod also loaded and shut down successfully in temporary standalone servers with
+both JSON and SQLite, using the installed `0.7.0` server and assets. Player
+interactions, trades between players and UI rendering still require in-game validation.
+
+For in-game validation on a copy of a world:
+
+- Check shop editing, NPC spawning, despawning, interaction and permissions with an owner and a buyer.
+- Check chest stock discovery in `FIXED` and `WORKBENCH` modes, including negative
+  heights in cubic worlds, and test successful trades, missing payment/stock,
+  full player inventories and full payment chests.
+- Check admin shops, item selection and persistence after restarting the server.
+
+See the [official Update 7 modder notes](https://hytale.com/news/2026/10/modder-facing-patch-notes-update-7)
+for API changes. Use a world copy for upgrade tests: newer chunk section data
+cannot be read by older servers.
 
 Install only the main JAR, excluding `-sources.jar`, into the game's `UserData/Mods` folder.
 Reload the world and enable TaleShop in its mod settings. For manual validation, open
@@ -60,7 +98,8 @@ to test a player-owned shop's buyer UI; an owner's interaction opens management.
 {
   "StorageBackend": "JSON",
   "StorageDistanceMode": "FIXED",
-  "FixedStorageDistance": 2
+  "FixedStorageDistance": 2,
+  "MaxTradesPerShop": 20
 }
 ```
 
@@ -71,6 +110,7 @@ to test a player-owned shop's buyer UI; an owner's interaction opens management.
 | `StorageBackend` | String | `"JSON"` | Storage backend: `"JSON"` or `"SQLITE"` |
 | `StorageDistanceMode` | String | `"FIXED"` | Storage search mode: `"FIXED"` or `"WORKBENCH"` |
 | `FixedStorageDistance` | Integer | `2` | Radius in blocks to search for storage (minimum: 1) |
+| `MaxTradesPerShop` | Integer | `20` | Maximum trades allowed in each shop (minimum: 1) |
 
 ### Storage Distance Modes
 
@@ -99,6 +139,12 @@ to test a player-owned shop's buyer UI; an owner's interaction opens management.
   "FixedStorageDistance": 2
 }
 ```
+
+Set `MaxTradesPerShop` in `TaleShopConfig.json` to raise or lower the per-shop trade limit. The value takes effect after restarting the server.
+For example, use `"MaxTradesPerShop": 50` to allow 50 trades per shop. Values below
+1 are clamped to 1. Lowering the limit preserves existing trades; adding new ones
+is blocked until the shop's count is below the configured limit. Existing trades
+can still be edited or deleted.
 
 ## Permissions
 
@@ -141,7 +187,7 @@ All commands use the base `/taleshop` command with various subcommands. Aliases:
 
 | Command | Description | Usage | Permission |
 |---------|-------------|-------|------------|
-| `/taleshop trade create <shopName> <inputItem> <inputQty> <outputItem> <outputQty>` | Create a new trade in the shop (max 20 per shop) | `/taleshop trade create MyShop Ingredient_Gold 10 Tool_IronSword 1` | `taleshop.shop.manage` |
+| `/taleshop trade create <shopName> <inputItem> <inputQty> <outputItem> <outputQty>` | Create a new trade in the shop (up to the configured limit) | `/taleshop trade create MyShop Ingredient_Gold 10 Tool_IronSword 1` | `taleshop.shop.manage` |
 | `/taleshop trade list <shopName>` | List all trades in a shop | `/taleshop trade list MyShop` | `taleshop.shop.manage` |
 | `/taleshop trade update <shopName> <tradeId> <inputItem> <inputQty> <outputItem> <outputQty>` | Update an existing trade | `/taleshop trade update MyShop 1 Ingredient_Gold 5 Tool_IronSword 1` | `taleshop.shop.manage` |
 | `/taleshop trade delete <shopName> <tradeId>` | Delete a trade from a shop | `/taleshop trade delete MyShop 1` | `taleshop.shop.manage` |
@@ -297,7 +343,7 @@ The plugin automatically migrates from legacy `shops.properties` format if found
 
 ## Limitations
 
-- Maximum of **20 trades** per shop
+- Maximum trades per shop is configurable with `MaxTradesPerShop` (default: 20)
 - Shop names are case-insensitive
 - Storage containers must be within the configured distance of the NPC
 - Minimum storage distance is 1 block

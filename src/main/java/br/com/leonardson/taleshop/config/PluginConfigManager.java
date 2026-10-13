@@ -37,6 +37,7 @@ public class PluginConfigManager {
                     config.setStorageBackend(parseBackend(data.StorageBackend));
                     config.setStorageDistanceMode(parseMode(data.StorageDistanceMode));
                     config.setFixedStorageDistance(data.FixedStorageDistance);
+                    config.setMaxTradesPerShop(data.MaxTradesPerShop);
                     LOGGER.atInfo().log("Loaded configuration from: %s", configPath);
                 } else {
                     LOGGER.atInfo().log("Config file is empty, using defaults");
@@ -58,6 +59,7 @@ public class PluginConfigManager {
             data.StorageBackend = config.getStorageBackend().name();
             data.StorageDistanceMode = config.getStorageDistanceMode().name();
             data.FixedStorageDistance = config.getFixedStorageDistance();
+            data.MaxTradesPerShop = config.getMaxTradesPerShop();
             
             try (Writer writer = Files.newBufferedWriter(configPath)) {
                 GSON.toJson(data, writer);
@@ -95,5 +97,6 @@ public class PluginConfigManager {
         String StorageBackend = "JSON";
         String StorageDistanceMode = "FIXED";
         int FixedStorageDistance = 2;
+        int MaxTradesPerShop = 20;
     }
 }

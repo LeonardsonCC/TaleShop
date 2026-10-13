@@ -1,5 +1,6 @@
 {
   "StorageBackend": "JSON",
   "StorageDistanceMode": "FIXED",
-  "FixedStorageDistance": 2
+  "FixedStorageDistance": 2,
+  "MaxTradesPerShop": 20
 }

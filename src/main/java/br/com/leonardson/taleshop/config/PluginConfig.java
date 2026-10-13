@@ -16,6 +16,7 @@ public class PluginConfig {
     private StorageBackend storageBackend = StorageBackend.JSON;
     private StorageDistanceMode storageDistanceMode = StorageDistanceMode.FIXED;
     private int fixedStorageDistance = 2;
+    private int maxTradesPerShop = 20;
 
     public PluginConfig() {
     }
@@ -28,6 +29,10 @@ public class PluginConfig {
         return fixedStorageDistance;
     }
 
+    public int getMaxTradesPerShop() {
+        return maxTradesPerShop;
+    }
+
     public StorageBackend getStorageBackend() {
         return storageBackend;
     }
@@ -38,6 +43,10 @@ public class PluginConfig {
 
     public void setFixedStorageDistance(int distance) {
         this.fixedStorageDistance = Math.max(1, distance);
+    }
+
+    public void setMaxTradesPerShop(int maxTradesPerShop) {
+        this.maxTradesPerShop = Math.max(1, maxTradesPerShop);
     }
 
     public void setStorageBackend(@Nonnull StorageBackend backend) {

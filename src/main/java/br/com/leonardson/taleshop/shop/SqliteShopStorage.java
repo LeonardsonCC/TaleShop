@@ -23,11 +23,17 @@ import java.util.Properties;
 public class SqliteShopStorage implements ShopStorage {
     private final Path dataDirectory;
     private final Path databaseFile;
+    private final int maxTradesPerShop;
     private Connection connection;
 
     public SqliteShopStorage(@Nonnull Path dataDirectory) {
+        this(dataDirectory, 20);
+    }
+
+    public SqliteShopStorage(@Nonnull Path dataDirectory, int maxTradesPerShop) {
         this.dataDirectory = dataDirectory;
         this.databaseFile = dataDirectory.resolve("shops.db");
+        this.maxTradesPerShop = Math.max(1, maxTradesPerShop);
         initializeDatabase();
         migrateFromPropertiesIfNeeded();
     }
@@ -35,6 +41,8 @@ public class SqliteShopStorage implements ShopStorage {
     private void initializeDatabase() {
         try {
             Files.createDirectories(dataDirectory);
+            // DriverManager's service discovery may not see a plugin's isolated classloader.
+            Class.forName("org.sqlite.JDBC");
             String url = "jdbc:sqlite:" + databaseFile.toAbsolutePath();
             connection = DriverManager.getConnection(url);
 
@@ -45,7 +53,7 @@ public class SqliteShopStorage implements ShopStorage {
             createTables();
             ensureDisplayNameColumn();
             ensureAdminColumn();
-        } catch (IOException | SQLException e) {
+        } catch (IOException | SQLException | ClassNotFoundException e) {
             throw new RuntimeException("Failed to initialize database", e);
         }
     }
@@ -554,8 +562,8 @@ public class SqliteShopStorage implements ShopStorage {
             pstmt.setString(1, ownerId);
             pstmt.setString(2, normalizedName);
             try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next() && rs.getInt(1) >= ShopRegistry.MAX_TRADES) {
-                    throw new IllegalArgumentException("Shop already has the maximum of " + ShopRegistry.MAX_TRADES + " trades.");
+                if (rs.next() && rs.getInt(1) >= maxTradesPerShop) {
+                    throw new IllegalArgumentException("Shop already has the maximum of " + maxTradesPerShop + " trades.");
                 }
             }
         } catch (SQLException e) {

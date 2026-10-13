@@ -48,6 +48,7 @@ public class TaleShop extends JavaPlugin {
         LOGGER.atInfo().log("Storage Backend: %s", cfg.getStorageBackend());
         LOGGER.atInfo().log("Storage Distance Mode: %s", cfg.getStorageDistanceMode());
         LOGGER.atInfo().log("Fixed Storage Distance: %d blocks", cfg.getFixedStorageDistance());
+        LOGGER.atInfo().log("Maximum Trades Per Shop: %d", cfg.getMaxTradesPerShop());
         
         shopRegistry = new ShopRegistry(ShopRegistry.resolveDataDirectory(this), cfg);
         // Commands

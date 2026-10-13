@@ -84,7 +84,7 @@ public class ShopListPage extends InteractiveCustomUIPage<ShopListPage.ShopListE
             
             // Set data for this row
             commandBuilder.set(rowSelector + " #ShopName.Text", shop.name());
-            commandBuilder.set(rowSelector + " #ShopTrades.Text", tradeCount + "/" + ShopRegistry.MAX_TRADES);
+            commandBuilder.set(rowSelector + " #ShopTrades.Text", tradeCount + "/" + registry.getMaxTradesPerShop());
             commandBuilder.set(rowSelector + " #ShopNpcButton.Text", hasNpc ? "Despawn" : "Spawn NPC");
             
             // Bind events for this row's buttons
