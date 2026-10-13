@@ -16,13 +16,13 @@ A Hytale server plugin that enables players to create and manage custom trading 
 
 ## Requirements
 
-- Hytale Server with NPC Plugin support
+- Hytale Server `0.7.0` (Update 7 / Chapter I) with NPC Plugin support
 - Java 25 or higher
 - Permission: `taleshop.shop.manage` (required for all shop management commands)
 
 ## Installation
 
-1. Download the latest `TaleShop-2.0.2.jar` from releases
+1. Download the latest `TaleShop-2.1.0.jar` from releases
 2. Place the JAR file in your server's `mods/` directory
 3. Start or restart your server
 4. Configuration will be auto-generated at `run/mods/Leonardson_TaleShop/TaleShopConfig.json`
@@ -33,7 +33,7 @@ A Hytale server plugin that enables players to create and manage custom trading 
 ./gradlew build
 ```
 
-The compiled JAR is `build/libs/TaleShop-2.0.2.jar`, targeting Hytale server `0.6.8`.
+The compiled JAR is `build/libs/TaleShop-2.1.0.jar`, targeting Hytale server `0.7.0`.
 
 To compile against a specific local installation (requires a JDK, not only a JRE):
 
@@ -41,45 +41,43 @@ To compile against a specific local installation (requires a JDK, not only a JRE
 ./gradlew build -PhytaleServerJar=/absolute/path/to/Server/HytaleServer.jar
 ```
 
-### Update 7 / Chapter 1 preparation
+### Update 7 / Chapter I compatibility
 
-The default target remains `0.6.8`. The server dependency version and Maven
-repository can be overridden with `hytale_version` and `hytale_repository`.
-The manifest's `server_version` is separate; update it to match the tested server.
-When supplying a local server JAR, also override `server_version` accordingly.
+TaleShop 2.1.0 targets the final Hytale `0.7.0` release. The server dependency
+version and Maven repository can be overridden with `hytale_version` and
+`hytale_repository`. The manifest's `ServerVersion` defaults to an exact match
+for `hytale_version`, so compilation and declared compatibility stay aligned.
+An explicit `server_version` property can override that constraint.
 
-On October 11, 2026, the plugin built successfully against the official Maven
-pre-release `0.7.0-pre.5.1` with this command:
+Local builds and CI compile and run tests against the same selected server
+artifact. If you pass `hytaleServerJar`, both use that JAR; set `hytale_version`
+to its version so the generated manifest also matches it.
 
 ```bash
-CI=true ./gradlew clean build \
-  -Phytale_version=0.7.0-pre.5.1 \
-  -Phytale_repository=https://maven.hytale.com/pre-release \
-  '-Pserver_version==0.7.0-pre.5.1'
+CI=true ./gradlew clean build
 ```
 
-Here `CI=true` selects the Maven dependency instead of the locally installed
-game server. The doubled `=` passes the manifest constraint `=0.7.0-pre.5.1`.
-This command writes the usual `build/libs/TaleShop-2.0.2.jar`; keep pre-release
-artifacts separate from stable releases. Run `./gradlew clean build` to rebuild
-for the default target before installing on a stable server.
+Configuration and storage regression tests cover the configurable trade limit
+in JSON and SQLite, including preservation of existing trades after reducing
+the limit. An isolated classloader test checks that the distributed JAR can open
+SQLite without Gradle's dependency classpath.
 
-Compilation passed with 70 removal warnings, including `Player.getPlayerRef()`,
-`Inventory` and combined inventory accessors. Automated configuration and storage
-tests do not cover in-game behavior. Runtime compatibility and the final Update 7 build are still
-unverified. The nearby chest fallback already uses `BlockModule.getBlockEntity`,
-which is retained in the [official Update 7 API notes](https://hytale.com/news/2026/9/pre-release-patch-notes-update-7).
+On October 13, 2026, all 14 tests passed against final server `0.7.0`. The packaged
+mod also loaded and shut down successfully in temporary standalone servers with
+both JSON and SQLite, using the installed `0.7.0` server and assets. Player
+interactions, trades between players and UI rendering still require in-game validation.
 
-Before releasing support for Update 7:
+For in-game validation on a copy of a world:
 
-- Compile against the final published server version and set its manifest constraint.
-- Use a copy of a world to test loading existing shops with both JSON and SQLite.
-  The pre-release notes warn that newer chunk section data cannot be read by older servers.
 - Check shop editing, NPC spawning, despawning, interaction and permissions with an owner and a buyer.
 - Check chest stock discovery in `FIXED` and `WORKBENCH` modes, including negative
   heights in cubic worlds, and test successful trades, missing payment/stock,
   full player inventories and full payment chests.
 - Check admin shops, item selection and persistence after restarting the server.
+
+See the [official Update 7 modder notes](https://hytale.com/news/2026/10/modder-facing-patch-notes-update-7)
+for API changes. Use a world copy for upgrade tests: newer chunk section data
+cannot be read by older servers.
 
 Install only the main JAR, excluding `-sources.jar`, into the game's `UserData/Mods` folder.
 Reload the world and enable TaleShop in its mod settings. For manual validation, open

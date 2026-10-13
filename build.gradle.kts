@@ -6,12 +6,14 @@ plugins {
 }
 
 group = "br.com.leonardson"
-version = "2.0.2"
+version = "2.1.0"
 val javaVersion = 25
 val runningOnCI = providers.environmentVariable("CI").orNull.toBoolean()
 val hytaleVersion = providers.gradleProperty("hytale_version").get()
 val hytaleRepository = providers.gradleProperty("hytale_repository").get()
 val localServerJar = providers.gradleProperty("hytaleServerJar").orNull
+val hytaleServerDependency = localServerJar?.let { files(it) }
+    ?: "com.hypixel.hytale:Server:$hytaleVersion"
 val useLocalHytalePlugin = !runningOnCI || localServerJar != null
 if (useLocalHytalePlugin) {
     apply(plugin = "hytale-mod")
@@ -26,13 +28,11 @@ repositories {
 }
 
 dependencies {
-    if (!useLocalHytalePlugin) {
-        compileOnly("com.hypixel.hytale:Server:$hytaleVersion")
-    }
+    compileOnly(hytaleServerDependency)
     compileOnly(libs.jetbrains.annotations)
     compileOnly(libs.jspecify)
     implementation("org.xerial:sqlite-jdbc:3.51.2.0")
-    testImplementation("com.hypixel.hytale:Server:$hytaleVersion")
+    testImplementation(hytaleServerDependency)
     testImplementation(platform("org.junit:junit-bom:5.12.2"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -41,11 +41,15 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
     systemProperty("java.util.logging.manager", "com.hypixel.hytale.logger.backend.HytaleLogManager")
+    dependsOn(tasks.named("jar"))
+    systemProperty("taleshop.testJar", layout.buildDirectory.file("libs/${project.name}-${project.version}.jar").get().asFile.absolutePath)
 }
 
 if (useLocalHytalePlugin) {
     extensions.configure<dev.hytalemods.gradle.hytalemod.HytaleExtension> {
         version.set(hytaleVersion)
+        // Keep compilation and tests on the same explicit dependency in local builds and CI.
+        addServerDependency.set(false)
         localServerJar?.let { localJar ->
             serverJar.set(file(localJar))
             serverJarSource.set(dev.hytalemods.gradle.hytalemod.ServerJarSource.GAME_FILES)
@@ -67,7 +71,7 @@ tasks.named<ProcessResources>("processResources") {
         "plugin_maven_group" to project.group,
         "plugin_name" to project.name,
         "plugin_version" to project.version,
-        "server_version" to findProperty("server_version"),
+        "server_version" to providers.gradleProperty("server_version").getOrElse("=$hytaleVersion"),
 
         "plugin_description" to findProperty("plugin_description"),
         "plugin_website" to findProperty("plugin_website"),
@@ -93,6 +97,18 @@ tasks.withType<Jar> {
                 .map { "${version}-${it}" }
                 .getOrElse(version.toString())
     }
+}
+
+tasks.named<Jar>("jar") {
+    // The server supplies compile-only APIs, but runtime libraries must ship with the mod.
+    from(configurations.runtimeClasspath.map { configuration ->
+        configuration.map { dependency ->
+            if (dependency.isDirectory) dependency else zipTree(dependency)
+        }
+    })
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    exclude("META-INF/*.SF", "META-INF/*.RSA", "META-INF/*.DSA")
+    exclude("module-info.class", "META-INF/versions/*/module-info.class")
 }
 
 publishing {

@@ -41,6 +41,8 @@ public class SqliteShopStorage implements ShopStorage {
     private void initializeDatabase() {
         try {
             Files.createDirectories(dataDirectory);
+            // DriverManager's service discovery may not see a plugin's isolated classloader.
+            Class.forName("org.sqlite.JDBC");
             String url = "jdbc:sqlite:" + databaseFile.toAbsolutePath();
             connection = DriverManager.getConnection(url);
 
@@ -51,7 +53,7 @@ public class SqliteShopStorage implements ShopStorage {
             createTables();
             ensureDisplayNameColumn();
             ensureAdminColumn();
-        } catch (IOException | SQLException e) {
+        } catch (IOException | SQLException | ClassNotFoundException e) {
             throw new RuntimeException("Failed to initialize database", e);
         }
     }

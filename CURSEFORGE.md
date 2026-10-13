@@ -33,6 +33,10 @@ The plugin automatically manages inventory - when players buy from your shop, it
 Admin shops work differently: they have infinite stock and do not require nearby storage. Buyers still pay the input
 items, but output items are always available.
 
+## Compatibility
+
+TaleShop 2.1.0 supports Hytale 0.7.0 (Update 7 / Chapter I) and requires Java 25.
+
 ## Getting Started
 
 ### Create Your First Shop
