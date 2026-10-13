@@ -14,12 +14,17 @@ import br.com.leonardson.taleshop.interaction.TraderMessageInteraction;
 import br.com.leonardson.taleshop.shop.ShopRegistry;
 import br.com.leonardson.taleshop.shop.TraderInteractableSystem;
 import br.com.leonardson.taleshop.shop.command.ShopCommands;
+import br.com.leonardson.taleshop.wandering.WanderingTraderConfigManager;
+import br.com.leonardson.taleshop.wandering.WanderingTraderService;
+import com.hypixel.hytale.server.core.universe.Universe;
+import com.hypixel.hytale.server.core.event.events.player.AddPlayerToWorldEvent;
 
 public class TaleShop extends JavaPlugin {
     private static final HytaleLogger LOGGER = HytaleLogger.forEnclosingClass();
     private static TaleShop instance;
     private ShopRegistry shopRegistry;
     private PluginConfigManager configManager;
+    private WanderingTraderService wanderingTraderService;
 
     public TaleShop(JavaPluginInit init) {
         super(init);
@@ -39,6 +44,8 @@ public class TaleShop extends JavaPlugin {
         return configManager != null ? configManager.getConfig() : null;
     }
 
+    public WanderingTraderService getWanderingTraderService() { return wanderingTraderService; }
+
     @Override
     protected void setup() {
         configManager = new PluginConfigManager(ShopRegistry.resolveDataDirectory(this));
@@ -51,6 +58,10 @@ public class TaleShop extends JavaPlugin {
         LOGGER.atInfo().log("Maximum Trades Per Shop: %d", cfg.getMaxTradesPerShop());
         
         shopRegistry = new ShopRegistry(ShopRegistry.resolveDataDirectory(this), cfg);
+        WanderingTraderConfigManager wanderingConfig = new WanderingTraderConfigManager(ShopRegistry.resolveDataDirectory(this));
+        if (wanderingConfig.isValid()) {
+            wanderingTraderService = new WanderingTraderService(wanderingConfig.getConfig(), ShopRegistry.resolveDataDirectory(this));
+        }
         // Commands
         this.getCommandRegistry().registerCommand(new ShopCommands(shopRegistry));
 
@@ -59,6 +70,12 @@ public class TaleShop extends JavaPlugin {
              .register("TraderMessageInteraction", TraderMessageInteraction.class, TraderMessageInteraction.CODEC);
 
         this.getEntityStoreRegistry().registerSystem(new TraderInteractableSystem(shopRegistry));
+
+        Universe universe = Universe.get();
+        if (universe != null && wanderingTraderService != null) {
+            universe.getEventRegistry().registerGlobal(AddPlayerToWorldEvent.class,
+                    event -> wanderingTraderService.startWorld(event.getWorld()));
+        }
     }
 
     @Override
@@ -71,12 +88,14 @@ public class TaleShop extends JavaPlugin {
             getIdentifier().toString(),
             List.of(TraderMessageInteraction.ROOT)
         );
+
+        if (wanderingTraderService != null) wanderingTraderService.start();
         
-        // Add shutdown hook to close database connection
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            if (shopRegistry != null) {
-                shopRegistry.close();
-            }
-        }));
+    }
+
+    @Override
+    protected void shutdown() {
+        if (wanderingTraderService != null) wanderingTraderService.close();
+        if (shopRegistry != null) shopRegistry.close();
     }
 }

@@ -22,6 +22,8 @@ import br.com.leonardson.taleshop.shop.Shop;
 import br.com.leonardson.taleshop.shop.ShopRegistry;
 import br.com.leonardson.taleshop.shop.ui.ShopBuyerPage;
 import br.com.leonardson.taleshop.shop.ui.TraderMenuPage;
+import br.com.leonardson.taleshop.wandering.WanderingTraderEncounter;
+import br.com.leonardson.taleshop.wandering.WanderingTraderBuyerPage;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.UUID;
@@ -77,6 +79,15 @@ public class TraderMessageInteraction extends SimpleInstantInteraction {
         String traderUuid = resolveTraderUuid(store, targetRef);
         if (traderUuid == null || traderUuid.isBlank()) {
             playerRef.sendMessage(Message.raw("Shop not found for this trader."));
+            return;
+        }
+
+        var wanderingService = plugin.getWanderingTraderService();
+        WanderingTraderEncounter wanderingEncounter = wanderingService == null ? null
+                : wanderingService.findByNpcUuid(traderUuid);
+        if (wanderingEncounter != null) {
+            playerComponent.getPageManager().openCustomPage(ref, store,
+                    new WanderingTraderBuyerPage(playerRef, wanderingService, wanderingEncounter.id()));
             return;
         }
 

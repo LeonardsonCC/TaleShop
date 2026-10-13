@@ -62,17 +62,26 @@ public class TraderNpc {
             throw new IllegalStateException("Could not determine spawn position. Shop created without a trader.");
         }
 
-        TransformComponent spawnTransform = new TransformComponent(
-                new Vector3d(transformComponent.getPosition()),
-                new Rotation3f(transformComponent.getRotation()));
-        Vector3d spawnPosition = new Vector3d(spawnTransform.getPosition());
-        Rotation3f spawnRotation = new Rotation3f(spawnTransform.getRotation());
+        spawn(store, new Vector3d(transformComponent.getPosition()), new Rotation3f(transformComponent.getRotation()));
+    }
+
+    /** Spawns this trader at an explicit world position. */
+    public void spawn(@Nonnull Store<EntityStore> store, @Nonnull Vector3d spawnPosition,
+            @Nonnull Rotation3f spawnRotation) {
+        NPCPlugin npcPlugin = NPCPlugin.get();
+        if (npcPlugin == null) {
+            throw new IllegalStateException("NPC system is not available.");
+        }
+        int roleIndex = npcPlugin.getIndex(role);
+        if (roleIndex < 0) {
+            throw new IllegalStateException("NPC role not found: " + role);
+        }
 
         Pair<Ref<EntityStore>, NPCEntity> npcPair = npcPlugin.spawnEntity(
                 store,
                 roleIndex,
-                spawnPosition,
-                spawnRotation,
+                new Vector3d(spawnPosition),
+                new Rotation3f(spawnRotation),
                 null,
                 (npc, npcRef, entityStore) -> {
                     this.ref = npcRef;
