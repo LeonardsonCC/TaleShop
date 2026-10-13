@@ -20,6 +20,7 @@ import com.hypixel.hytale.server.core.modules.interaction.Interactions;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
 import br.com.leonardson.taleshop.interaction.TraderMessageInteraction;
+import br.com.leonardson.taleshop.TaleShop;
 
 public class TraderInteractableSystem extends RefSystem<EntityStore> {
     private static final HytaleLogger LOGGER = HytaleLogger.forEnclosingClass();
@@ -51,8 +52,16 @@ public class TraderInteractableSystem extends RefSystem<EntityStore> {
         if (uuidComponent == null) {
             return;
         }
-        Shop shop = shopRegistry.findShopByTraderUuid(uuidComponent.getUuid().toString());
-        if (shop == null) {
+        String uuid = uuidComponent.getUuid().toString();
+        Shop shop = shopRegistry.findShopByTraderUuid(uuid);
+        var plugin = TaleShop.getInstance();
+        if (plugin != null && plugin.getWanderingTraderService() != null) {
+            com.hypixel.hytale.server.core.universe.world.World world = store.getExternalData().getWorld();
+            if (plugin.getWanderingTraderService().removeIfPending(world, store, uuid)) return;
+        }
+        var wandering = plugin == null || plugin.getWanderingTraderService() == null ? null
+                : plugin.getWanderingTraderService().findByNpcUuid(uuid);
+        if (shop == null && wandering == null) {
             return;
         }
 
@@ -68,7 +77,7 @@ public class TraderInteractableSystem extends RefSystem<EntityStore> {
         // Apply freeze immediately when trader is added
         applyTraderFreeze(ref, store, commandBuffer);
         
-        LOGGER.atInfo().log("Bound trader interaction and freeze for shop %s (%s)", shop.name(), shop.traderUuid());
+        if (shop != null) LOGGER.atInfo().log("Bound trader interaction and freeze for shop %s (%s)", shop.name(), shop.traderUuid());
     }
 
     @Override
@@ -77,6 +86,12 @@ public class TraderInteractableSystem extends RefSystem<EntityStore> {
             @Nonnull RemoveReason reason,
             @Nonnull Store<EntityStore> store,
             @Nonnull CommandBuffer<EntityStore> commandBuffer) {
+        if (reason == RemoveReason.UNLOAD) return;
+        UUIDComponent uuid = commandBuffer.getComponent(ref, UUIDComponent.getComponentType());
+        TaleShop plugin = TaleShop.getInstance();
+        if (uuid != null && plugin != null && plugin.getWanderingTraderService() != null) {
+            plugin.getWanderingTraderService().onNpcRemoved(uuid.getUuid().toString());
+        }
     }
     
     /**

@@ -11,6 +11,7 @@ A Hytale server plugin that enables players to create and manage custom trading 
 - **Storage Distance Control**: Configure search radius for storage containers
 - **Multi-Shop Support**: Create multiple shops per player with no hardcoded limit
 - **Admin Shops**: Create server-managed shops with infinite stock and no storage requirements
+- **Wandering Trader**: Optional random encounter with configured offers and limited purchases per offer
 - **Persistent Data**: JSON by default, SQLite optional
 - **Interactive UI**: Full graphical interface for shop and trade management
 
@@ -26,6 +27,15 @@ A Hytale server plugin that enables players to create and manage custom trading 
 2. Place the JAR file in your server's `mods/` directory
 3. Start or restart your server
 4. Configuration will be auto-generated at `run/mods/Leonardson_TaleShop/TaleShopConfig.json`
+
+The optional wandering trader uses `run/mods/Leonardson_TaleShop/WanderingTraderConfig.json`.
+It is disabled by default. Copy the structure from
+[`WanderingTraderConfig.json.example`](src/main/resources/WanderingTraderConfig.json.example),
+replace the example item IDs with valid game item IDs, and set `Enabled` to `true`.
+`DefaultMaxUses` controls the number of purchases per offer (default 5); each offer
+can override it with `MaxUses`. The NPC appears after random attempts near a player,
+stays for `LifetimeSeconds` of active world time, and its current stock is saved per world.
+Changes take effect after restarting/reloading the world.
 
 ## Building from Source
 

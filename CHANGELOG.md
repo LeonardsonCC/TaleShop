@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Add an optional wandering trader encounter with per-offer limited stock, random
+  nearby spawning, world-specific saved encounter state, and a buyer UI.
+
 ## 2.1.0
 
 - Target Hytale 0.7.0, the final Update 7 / Chapter I release.

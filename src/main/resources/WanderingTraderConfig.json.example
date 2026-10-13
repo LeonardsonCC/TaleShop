@@ -1,0 +1,21 @@
+{
+  "Enabled": false,
+  "NpcRole": "Klops_Merchant",
+  "DisplayName": "Traveling Merchant",
+  "AttemptIntervalSeconds": 600,
+  "SpawnChance": 0.25,
+  "MinSpawnDistance": 20,
+  "MaxSpawnDistance": 40,
+  "LifetimeSeconds": 600,
+  "DefaultMaxUses": 5,
+  "Trades": [
+    {
+      "Id": "example_offer",
+      "InputItemId": "REPLACE_WITH_VALID_ITEM_ID",
+      "InputQuantity": 10,
+      "OutputItemId": "REPLACE_WITH_VALID_ITEM_ID",
+      "OutputQuantity": 1,
+      "MaxUses": 5
+    }
+  ]
+}
