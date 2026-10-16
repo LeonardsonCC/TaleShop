@@ -40,14 +40,40 @@ public interface ShopStorage {
     Shop findShopByTraderUuid(@Nonnull String traderUuid);
 
     @Nonnull
-    Trade addTrade(
+    default Trade addTrade(
         @Nonnull String ownerId,
         @Nonnull String shopName,
         @Nonnull String inputItemId,
         int inputQuantity,
         @Nonnull String outputItemId,
         int outputQuantity
+    ) {
+        return addTrade(ownerId, shopName, inputItemId, inputQuantity, outputItemId, outputQuantity, null, null);
+    }
+
+    @Nonnull
+    Trade addTrade(
+        @Nonnull String ownerId,
+        @Nonnull String shopName,
+        @Nonnull String inputItemId,
+        int inputQuantity,
+        @Nonnull String outputItemId,
+        int outputQuantity,
+        @Nullable String inputStackData,
+        @Nullable String outputStackData
     );
+
+    default void updateTrade(
+        @Nonnull String ownerId,
+        @Nonnull String shopName,
+        int tradeId,
+        @Nonnull String inputItemId,
+        int inputQuantity,
+        @Nonnull String outputItemId,
+        int outputQuantity
+    ) {
+        updateTrade(ownerId, shopName, tradeId, inputItemId, inputQuantity, outputItemId, outputQuantity, null, null);
+    }
 
     void updateTrade(
         @Nonnull String ownerId,
@@ -56,7 +82,9 @@ public interface ShopStorage {
         @Nonnull String inputItemId,
         int inputQuantity,
         @Nonnull String outputItemId,
-        int outputQuantity
+        int outputQuantity,
+        @Nullable String inputStackData,
+        @Nullable String outputStackData
     );
 
     void removeTrade(@Nonnull String ownerId, @Nonnull String shopName, int tradeId);

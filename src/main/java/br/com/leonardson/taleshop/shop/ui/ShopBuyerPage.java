@@ -5,6 +5,8 @@ import br.com.leonardson.taleshop.config.PluginConfig;
 import br.com.leonardson.taleshop.shop.Shop;
 import br.com.leonardson.taleshop.shop.ShopRegistry;
 import br.com.leonardson.taleshop.shop.trade.Trade;
+import br.com.leonardson.taleshop.shop.trade.TradeItems;
+import br.com.leonardson.taleshop.shop.trade.TradeExchange;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
@@ -89,14 +91,14 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
             int playerHas = 0;
             boolean canAfford = false;
             if (ItemModule.exists(trade.inputItemId())) {
-                playerHas = playerInventory != null ? countItemsInContainer(playerInventory, trade.inputItemId()) : 0;
+                playerHas = playerInventory != null ? TradeExchange.count(List.of(playerInventory), stack -> TradeItems.matchesInput(trade, stack)) : 0;
                 canAfford = playerHas >= trade.inputQuantity();
             }
             commandBuilder.set(selector + " #InputSlotBorder.Background", canAfford ? "#2a5a3a" : "#5a2a2a");
             commandBuilder.set(selector + " #HaveNeedLabel.Text", "Have: " + playerHas);
             commandBuilder.set(selector + " #HaveNeedLabel.Style.TextColor", canAfford ? "#3d913f" : "#962f2f");
 
-            int availableStock = isAdminShop ? Integer.MAX_VALUE : countItemsInContainers(stockContainers, trade.outputItemId());
+            int availableStock = isAdminShop ? Integer.MAX_VALUE : TradeExchange.count(stockContainers, stack -> TradeItems.matchesOutput(trade, stack));
             boolean outOfStock = !isAdminShop && availableStock < trade.outputQuantity();
             commandBuilder.set(selector + " #Stock.Visible", true);
             commandBuilder.set(selector + " #Stock.Text", isAdminShop ? "INF" : String.valueOf(Math.max(0, availableStock)));
@@ -142,43 +144,24 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
         List<ItemContainer> stockContainers = isAdminShop
             ? Collections.emptyList()
             : resolveNearbyContainers(store, shop);
-        if (!isAdminShop) {
-            int availableStock = countItemsInContainers(stockContainers, trade.outputItemId());
-            if (availableStock < trade.outputQuantity()) {
-                playerComponent.getPlayerRef().sendMessage(Message.raw("Shop is out of stock."));
-                return;
-            }
-            if (!hasSpaceForItems(stockContainers, trade.inputItemId(), trade.inputQuantity())) {
-                playerComponent.getPlayerRef().sendMessage(Message.raw("Shop has no space for that trade."));
-                return;
-            }
-        }
-
         Inventory inventory = playerComponent.getInventory();
         CombinedItemContainer container = inventory.getCombinedHotbarFirst();
-        int playerHas = countItemsInContainer(container, trade.inputItemId());
-        if (playerHas < trade.inputQuantity()) {
-            playerComponent.getPlayerRef().sendMessage(Message.raw("You don't have enough items."));
+        List<ItemStack> purchased;
+        try {
+            purchased = TradeExchange.exchange(trade, container, stockContainers, isAdminShop);
+        } catch (IllegalArgumentException ex) {
+            playerComponent.getPlayerRef().sendMessage(Message.raw(ex.getMessage()));
             return;
         }
 
-        removeItemsFromContainer(container, trade.inputItemId(), trade.inputQuantity());
-        if (!isAdminShop) {
-            removeItemsFromContainers(stockContainers, trade.outputItemId(), trade.outputQuantity());
-            addItemsToContainers(stockContainers, trade.inputItemId(), trade.inputQuantity());
-        }
-
-        ItemStack outputStack = new ItemStack(trade.outputItemId(), trade.outputQuantity());
-        ItemStackTransaction transaction = container.addItemStack(outputStack);
-        ItemStack remainder = transaction.getRemainder();
-        if (remainder != null && !remainder.isEmpty()) {
-            int addedQty = outputStack.getQuantity() - remainder.getQuantity();
+        for (ItemStack outputStack : purchased) {
+            ItemStackTransaction transaction = container.addItemStack(outputStack);
+            ItemStack remainder = transaction.getRemainder();
+            int addedQty = outputStack.getQuantity() - (ItemStack.isEmpty(remainder) ? 0 : remainder.getQuantity());
             if (addedQty > 0) {
                 playerComponent.notifyPickupItem(ref, outputStack.withQuantity(addedQty), null, store);
             }
-            ItemUtils.dropItem(ref, remainder, store);
-        } else {
-            playerComponent.notifyPickupItem(ref, outputStack, null, store);
+            if (!ItemStack.isEmpty(remainder)) ItemUtils.dropItem(ref, remainder, store);
         }
 
         PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
@@ -665,101 +648,6 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
         return null;
     }
 
-    private int countItemsInContainers(@Nonnull List<ItemContainer> containers, @Nonnull String itemId) {
-        int total = 0;
-        for (ItemContainer container : containers) {
-            total += countItemsInContainer(container, itemId);
-        }
-        return total;
-    }
-
-    private void removeItemsFromContainers(@Nonnull List<ItemContainer> containers, @Nonnull String itemId, int quantity) {
-        int remaining = quantity;
-        for (ItemContainer container : containers) {
-            if (remaining <= 0) {
-                return;
-            }
-            int before = countItemsInContainer(container, itemId);
-            if (before <= 0) {
-                continue;
-            }
-            int toRemove = Math.min(before, remaining);
-            removeItemsFromContainer(container, itemId, toRemove);
-            remaining -= toRemove;
-        }
-    }
-
-    private boolean hasSpaceForItems(@Nonnull List<ItemContainer> containers, @Nonnull String itemId, int quantity) {
-        if (quantity <= 0) {
-            return true;
-        }
-        int maxStack = resolveMaxStackSize(itemId);
-        int remaining = quantity;
-        for (ItemContainer container : containers) {
-            if (remaining <= 0) {
-                return true;
-            }
-            remaining -= estimateFreeSpace(container, itemId, maxStack);
-        }
-        return remaining <= 0;
-    }
-
-    private int estimateFreeSpace(@Nonnull ItemContainer container, @Nonnull String itemId, int maxStack) {
-        int free = 0;
-        for (short slot = 0; slot < container.getCapacity(); slot++) {
-            ItemStack itemStack = container.getItemStack(slot);
-            if (ItemStack.isEmpty(itemStack)) {
-                free += maxStack;
-                continue;
-            }
-            if (itemId.equals(itemStack.getItemId())) {
-                free += Math.max(0, maxStack - itemStack.getQuantity());
-            }
-        }
-        return free;
-    }
-
-    private void addItemsToContainers(@Nonnull List<ItemContainer> containers, @Nonnull String itemId, int quantity) {
-        int remaining = quantity;
-        for (ItemContainer container : containers) {
-            if (remaining <= 0) {
-                return;
-            }
-            ItemStack stack = new ItemStack(itemId, remaining);
-            ItemStackTransaction transaction;
-            try {
-                transaction = container.addItemStack(stack);
-            } catch (RuntimeException ex) {
-                Object result = tryInvokeForResult(container, "addItemStack", stack);
-                if (result instanceof ItemStackTransaction tx) {
-                    transaction = tx;
-                } else {
-                    continue;
-                }
-            }
-            ItemStack remainder = transaction.getRemainder();
-            remaining = remainder == null ? 0 : remainder.getQuantity();
-        }
-    }
-
-    private int resolveMaxStackSize(@Nonnull String itemId) {
-        try {
-            ItemStack stack = new ItemStack(itemId, 1);
-            Object value = firstNonNull(
-                tryInvokeForResult(stack, "getMaxStackSize"),
-                tryInvokeForResult(stack, "getMaxStack"),
-                tryInvokeForResult(stack, "getMaxQuantity"),
-                tryInvokeForResult(stack, "getMaxAmount")
-            );
-            if (value instanceof Number number) {
-                int max = number.intValue();
-                return max > 0 ? max : 64;
-            }
-        } catch (RuntimeException ignored) {
-        }
-        return 64;
-    }
-
     private boolean isRefValid(@Nonnull Ref<EntityStore> ref) {
         Object value = tryInvokeForResult(ref, "isValid");
         if (value instanceof Boolean valid) {
@@ -862,33 +750,6 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
             }
         }
         return null;
-    }
-
-    private int countItemsInContainer(@Nonnull ItemContainer container, @Nonnull String itemId) {
-        int count = 0;
-        for (short slot = 0; slot < container.getCapacity(); slot++) {
-            ItemStack itemStack = container.getItemStack(slot);
-            if (!ItemStack.isEmpty(itemStack) && itemId.equals(itemStack.getItemId())) {
-                count += itemStack.getQuantity();
-            }
-        }
-        return count;
-    }
-
-    private void removeItemsFromContainer(@Nonnull ItemContainer container, @Nonnull String itemId, int quantity) {
-        int remaining = quantity;
-        for (short slot = 0; slot < container.getCapacity(); slot++) {
-            if (remaining <= 0) {
-                return;
-            }
-            ItemStack itemStack = container.getItemStack(slot);
-            if (ItemStack.isEmpty(itemStack) || !itemId.equals(itemStack.getItemId())) {
-                continue;
-            }
-            int toRemove = Math.min(remaining, itemStack.getQuantity());
-            container.removeItemStackFromSlot(slot, itemStack, toRemove);
-            remaining -= toRemove;
-        }
     }
 
     public static class ShopBuyerEventData {

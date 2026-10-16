@@ -233,7 +233,9 @@ public class JsonShopStorage implements ShopStorage {
         @Nonnull String inputItemId,
         int inputQuantity,
         @Nonnull String outputItemId,
-        int outputQuantity
+        int outputQuantity,
+        @Nullable String inputStackData,
+        @Nullable String outputStackData
     ) {
         validateItem(inputItemId, "Input item");
         validateItem(outputItemId, "Output item");
@@ -252,10 +254,12 @@ public class JsonShopStorage implements ShopStorage {
         trade.inputQuantity = inputQuantity;
         trade.outputItemId = outputItemId;
         trade.outputQuantity = outputQuantity;
+        trade.inputStackData = inputStackData;
+        trade.outputStackData = outputStackData;
         shop.trades.add(trade);
         save();
 
-        return new Trade(tradeId, inputItemId, inputQuantity, outputItemId, outputQuantity);
+        return new Trade(tradeId, inputItemId, inputQuantity, outputItemId, outputQuantity, inputStackData, outputStackData);
     }
 
     @Override
@@ -266,7 +270,9 @@ public class JsonShopStorage implements ShopStorage {
         @Nonnull String inputItemId,
         int inputQuantity,
         @Nonnull String outputItemId,
-        int outputQuantity
+        int outputQuantity,
+        @Nullable String inputStackData,
+        @Nullable String outputStackData
     ) {
         validateItem(inputItemId, "Input item");
         validateItem(outputItemId, "Output item");
@@ -282,6 +288,8 @@ public class JsonShopStorage implements ShopStorage {
         trade.inputQuantity = inputQuantity;
         trade.outputItemId = outputItemId;
         trade.outputQuantity = outputQuantity;
+        trade.inputStackData = inputStackData;
+        trade.outputStackData = outputStackData;
         save();
     }
 
@@ -316,7 +324,7 @@ public class JsonShopStorage implements ShopStorage {
         if (shop.trades != null) {
             for (JsonTrade trade : shop.trades) {
                 if (trade == null) continue;
-                trades.add(new Trade(trade.id, trade.inputItemId, trade.inputQuantity, trade.outputItemId, trade.outputQuantity));
+                trades.add(new Trade(trade.id, trade.inputItemId, trade.inputQuantity, trade.outputItemId, trade.outputQuantity, trade.inputStackData, trade.outputStackData));
             }
         }
         trades.sort(Comparator.comparingInt(Trade::id));
@@ -388,5 +396,7 @@ public class JsonShopStorage implements ShopStorage {
         int inputQuantity;
         String outputItemId;
         int outputQuantity;
+        String inputStackData;
+        String outputStackData;
     }
 }
