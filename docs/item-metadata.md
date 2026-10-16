@@ -48,7 +48,7 @@ full buyer inventory remainders, JSON/SQLite restart/update round trips and old-
 Preview coverage checks native formatted names/descriptions, translation keys/parameters, payment details,
 legacy next-stock selection, out-of-stock/admin templates and vanilla items with no enchantments plugin
 on the test classpath. Serialized commands must contain IDs/text, never raw stack metadata.
-The full suite now has 33 passing tests on both Hytale 0.7.0 and the installed 0.7.2 SDK (including
+The full suite now has 39 passing tests on both Hytale 0.7.0 and the installed 0.7.2 SDK (including
 four tests inherited from the NPC fix on main).
 
 For an installed server, also run:
@@ -73,22 +73,40 @@ A separate read-only smoke check loaded the actual local enchanted offer (withou
 into the repository) and confirmed that all its native description translation keys reach the new
 UI command while raw enchantment metadata stays out of it. Saves were not modified.
 
-The updated tooltip has only automated payload validation so far; no live client rendering is claimed.
+The user's subsequent screenshot of 2.1.1-test.2 confirms the formatted Efficiency III description,
+400/400 durability and Epic quality are visible. It also exposed native `<item is="..."/>` tags
+in Gold Ore's description. These tags are intended for native item tooltips, not text tooltips.
+The next build resolves only descriptions containing such references with Hytale's I18nModule,
+using the viewer's language and the default-language fallback. Each referenced item becomes a
+native translated name from the item asset registry. Plain text and referenced names become
+separate native message spans; existing colors, nesting, translation parameters and enchantment
+messages are retained. Escaped/paired tags are handled, and missing items have a readable fallback.
+No enchantments plugin API or metadata key is involved.
+
+The screenshot validates the previous enchantment preview, not the new item-reference conversion.
+The item-reference conversion has automated SDK formatting/payload coverage. A read-only smoke
+check using the installed 0.7.2 Assets.zip (the actual Gold Ore description plus Gold Ingot/Furnace
+item definitions and English names) produced exactly “Can be smelted into a Gold Ingot at a Furnace.”
+Its client rendering
+still requires the next manual test.
 Check the following in the next local test build:
 
 1. Load the test build in a fresh server session (leave and reopen a single-player world; restart the client if necessary).
-2. Hover the offer card in “Preview Shop” and the buyer page. Confirm the actual enchanted name,
+2. Check Gold Ore's payment description: it should read “Can be smelted into a Gold Ingot at a Furnace.”
+   in English (or the equivalent localized names), without `<item>` markup or internal item IDs.
+   Recheck Efficiency III's colored text and bonus, durability and quality.
+3. Hover the offer card in “Preview Shop” and the buyer page. Confirm the actual enchanted name,
    formatted enchantment descriptions, quantities, durability and quality label appear for receive/pay.
    Check out-of-stock/insufficient-payment offers too; the tooltip should remain available and purchases
    must still work by clicking the card. Verify the UI opens without a quality-background crash.
-3. With Simple Enchantments installed, select an enchanted/damaged item as output and save an offer.
+4. With Simple Enchantments installed, select an enchanted/damaged item as output and save an offer.
    Reopen the editor, change only quantities, save, then restart the world and reopen the shop.
-4. Stock a nearby chest with that sample and another item of the same ID with different enchantments/durability.
+5. Stock a nearby chest with that sample and another item of the same ID with different enchantments/durability.
    Buy the offer; check that only matching stock is consumed and the delivered item retains enchantments,
    custom name, quality and durability. Check the chest's received payment too.
-5. Repeat with an existing ID-only offer, multiple chests, admin offers, full buyer inventory and full/filtered stock.
+6. Repeat with an existing ID-only offer, multiple chests, admin offers, full buyer inventory and full/filtered stock.
    Verify overflow drops retain metadata and refused trades do not consume payment or stock.
-6. Verify enchantment effects in combat/use, not just item tooltips.
+7. Verify enchantment effects in combat/use, not just item tooltips.
 
 No client UI, third-party mod effects, actual drops or live-world restart has been exercised by the unit tests.
 

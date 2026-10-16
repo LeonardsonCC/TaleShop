@@ -83,7 +83,7 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
             String selector = "#TradeGrid[" + i + "]";
             commandBuilder.append("#TradeGrid", "Pages/ShopTradePreviewRow.ui");
 
-            ShopTradePreview.render(commandBuilder, selector, trade, playerInventory, stockContainers, isAdminShop);
+            ShopTradePreview.render(commandBuilder, selector, trade, playerInventory, stockContainers, isAdminShop, playerRef.getLanguage());
             commandBuilder.set(selector + " #OutputQuantity.Text", trade.outputQuantity() > 1 ? String.valueOf(trade.outputQuantity()) : "");
             commandBuilder.set(selector + " #InputQuantity.Text", trade.inputQuantity() > 1 ? String.valueOf(trade.inputQuantity()) : "");
 

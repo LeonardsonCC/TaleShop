@@ -41,12 +41,17 @@ public final class ShopTradePreview {
 
     public static void render(UICommandBuilder commands, String selector, Trade trade,
                               ItemContainer buyer, List<ItemContainer> stock, boolean admin) {
+        render(commands, selector, trade, buyer, stock, admin, "en-US");
+    }
+
+    public static void render(UICommandBuilder commands, String selector, Trade trade,
+                              ItemContainer buyer, List<ItemContainer> stock, boolean admin, String language) {
         ItemStack output = output(trade, stock, admin);
         ItemStack input = input(trade, buyer);
         // Keep the ID-only icon path that avoids the historical CustomUI quality/metadata crash.
         commands.set(selector + " #OutputSlot.ItemId", trade.outputItemId());
         commands.set(selector + " #InputSlot.ItemId", trade.inputItemId());
-        commands.set(selector + " #TradeButton.TooltipTextSpans", tooltip(trade, input, output, admin));
+        commands.set(selector + " #TradeButton.TooltipTextSpans", ShopTooltipText.resolve(tooltip(trade, input, output, admin), language));
     }
 
     public static Message tooltip(Trade trade, ItemStack input, ItemStack output, boolean admin) {
