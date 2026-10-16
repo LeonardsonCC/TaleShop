@@ -1,6 +1,10 @@
 package br.com.leonardson.taleshop.shop.trade;
 
 import com.hypixel.hytale.server.core.inventory.ItemStack;
+import com.hypixel.hytale.server.core.Message;
+import com.hypixel.hytale.server.core.asset.type.item.config.metadata.ItemDisplayMetadata;
+import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
+import br.com.leonardson.taleshop.shop.ui.ShopTradePreview;
 import com.hypixel.hytale.server.core.inventory.container.SimpleItemContainer;
 import org.bson.BsonDocument;
 import org.junit.jupiter.api.Test;
@@ -138,4 +142,74 @@ class TradeMetadataTest {
         assertEquals(List.of(sword.withQuantity(2)), TradeExchange.exchange(trade, buyer, List.of(), true));
         assertEquals(1, buyer.getItemStack((short) 0).getQuantity());
     }
+    @Test
+    void previewSendsNativeFormattedDescriptionWithoutSendingStackMetadataToVisualUi() {
+        Message description = Message.empty().insert(Message.translation("enchantment.sharpness.name").color("#55ff55"))
+            .insert(" III\n").insert(Message.translation("enchantment.sharpness.bonus").param("amount", 30));
+        ItemStack sword = enchanted("Weapon_Sword_Iron", 1, "Sharpness").withMetadata(ItemDisplayMetadata.KEYED_CODEC,
+            new ItemDisplayMetadata(Message.raw("My engraved sword"), description));
+        Trade trade = new Trade(1, "Ingredient_Gold", 1, sword.getItemId(), 1, null, TradeItems.encode(sword));
+        String original = TradeItems.encode(sword);
+        UICommandBuilder commands = new UICommandBuilder();
+        ShopTradePreview.render(commands, "#TradeGrid[0]", trade, null, List.of(), true);
+        var entries = commands.getCommands();
+        assertEquals(3, entries.length);
+        assertEquals("#TradeGrid[0] #OutputSlot.ItemId", entries[0].selector);
+        assertEquals("#TradeGrid[0] #TradeButton.TooltipTextSpans", entries[2].selector);
+        assertTrue(entries[2].data.contains("My engraved sword"));
+        assertTrue(entries[2].data.contains("enchantment.sharpness.name"));
+        assertTrue(entries[2].data.contains("enchantment.sharpness.bonus"));
+        assertTrue(entries[2].data.contains("#55ff55"));
+        assertTrue(entries[2].data.contains("amount"));
+        assertTrue(entries[2].data.contains("30"));
+        assertTrue(entries[2].data.contains("37.0 / 100.0"));
+        for (var entry : entries) {
+            assertFalse(entry.data.contains("SimpleEnchantments"));
+            assertFalse(entry.data.contains("ItemDisplay"));
+            assertFalse(entry.data.contains("Metadata"));
+        }
+        assertEquals(original, TradeItems.encode(sword));
+    }
+
+    @Test
+    void legacyPreviewUsesNextRealStockAndExplainsThatVariantsCanDiffer() {
+        ItemStack first = enchanted("Weapon_Sword_Iron", 1, "Sharpness");
+        ItemStack second = enchanted("Weapon_Sword_Iron", 1, "Smite");
+        SimpleItemContainer chest = new SimpleItemContainer((short) 3);
+        chest.setItemStackForSlot((short) 0, new ItemStack("Ingredient_Gold", 1));
+        chest.setItemStackForSlot((short) 1, first);
+        chest.setItemStackForSlot((short) 2, second);
+        Trade trade = new Trade(1, "Ingredient_Gold", 1, first.getItemId(), 2);
+        assertEquals(first, ShopTradePreview.output(trade, List.of(chest), false));
+        Message tooltip = ShopTradePreview.tooltip(trade, new ItemStack("Ingredient_Gold", 1), first, false);
+        assertTrue(Message.CODEC.encode(tooltip, new com.hypixel.hytale.codec.ExtraInfo()).toString()
+            .contains("Stock variants may differ"));
+    }
+
+    @Test
+    void previewKeepsOutOfStockAndAdminTemplatesAndWorksWithVanillaItemsWithoutEnchantmentsMod() {
+        ItemStack sword = enchanted("Weapon_Sword_Iron", 1, "Sharpness");
+        Trade saved = new Trade(1, "Ingredient_Gold", 1, sword.getItemId(), 2, null, TradeItems.encode(sword));
+        assertEquals(sword.withQuantity(2), ShopTradePreview.output(saved, List.of(), false));
+        assertEquals(sword.withQuantity(2), ShopTradePreview.output(saved, List.of(), true));
+        Trade vanilla = new Trade(2, "Ingredient_Gold", 2, "Ingredient_Diamond", 1);
+        UICommandBuilder commands = new UICommandBuilder();
+        assertDoesNotThrow(() -> ShopTradePreview.render(commands, "#TradeGrid[0]", vanilla, null, List.of(), true));
+        assertEquals(3, commands.getCommands().length);
+        assertFalse(commands.getCommands()[2].data.contains("Durability:"));
+    }
+
+    @Test
+    void previewIncludesNativeDetailsForRequiredPaymentToo() {
+        ItemStack payment = enchanted("Weapon_Sword_Iron", 1, "Sharpness").withMetadata(ItemDisplayMetadata.KEYED_CODEC,
+            new ItemDisplayMetadata(Message.raw("Payment name"), Message.raw("Sharpness III")));
+        Trade trade = new Trade(1, payment.getItemId(), 1, "Ingredient_Gold", 1, TradeItems.encode(payment), null);
+        assertEquals(payment, ShopTradePreview.input(trade, null));
+        UICommandBuilder commands = new UICommandBuilder();
+        ShopTradePreview.render(commands, "#TradeGrid[0]", trade, null, List.of(), true);
+        assertTrue(commands.getCommands()[2].data.contains("Payment name"));
+        assertTrue(commands.getCommands()[2].data.contains("Sharpness III"));
+        assertFalse(commands.getCommands()[2].data.contains("Any variant"));
+    }
+
 }

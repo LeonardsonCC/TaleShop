@@ -81,11 +81,10 @@ public class ShopBuyerPage extends InteractiveCustomUIPage<ShopBuyerPage.ShopBuy
         for (int i = 0; i < trades.size(); i++) {
             Trade trade = trades.get(i);
             String selector = "#TradeGrid[" + i + "]";
-            commandBuilder.append("#TradeGrid", "Pages/BarterTradeRow.ui");
+            commandBuilder.append("#TradeGrid", "Pages/ShopTradePreviewRow.ui");
 
-            commandBuilder.set(selector + " #OutputSlot.ItemId", trade.outputItemId());
+            ShopTradePreview.render(commandBuilder, selector, trade, playerInventory, stockContainers, isAdminShop);
             commandBuilder.set(selector + " #OutputQuantity.Text", trade.outputQuantity() > 1 ? String.valueOf(trade.outputQuantity()) : "");
-            commandBuilder.set(selector + " #InputSlot.ItemId", trade.inputItemId());
             commandBuilder.set(selector + " #InputQuantity.Text", trade.inputQuantity() > 1 ? String.valueOf(trade.inputQuantity()) : "");
 
             int playerHas = 0;
