@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "br.com.leonardson"
-version = "2.1.0"
+version = "2.1.1"
 val javaVersion = 25
 val runningOnCI = providers.environmentVariable("CI").orNull.toBoolean()
 val hytaleVersion = providers.gradleProperty("hytale_version").get()
