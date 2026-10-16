@@ -53,6 +53,7 @@ public class SqliteShopStorage implements ShopStorage {
             createTables();
             ensureDisplayNameColumn();
             ensureAdminColumn();
+            ensureStackDataColumns();
         } catch (IOException | SQLException | ClassNotFoundException e) {
             throw new RuntimeException("Failed to initialize database", e);
         }
@@ -90,6 +91,21 @@ public class SqliteShopStorage implements ShopStorage {
             stmt.execute(
                 "CREATE INDEX IF NOT EXISTS idx_shops_trader_uuid ON shops(trader_uuid)"
             );
+        }
+    }
+
+    private void ensureStackDataColumns() throws SQLException {
+        for (String column : List.of("input_stack_data", "output_stack_data")) {
+            boolean found = false;
+            try (Statement stmt = connection.createStatement();
+                 ResultSet rs = stmt.executeQuery("PRAGMA table_info(trades)")) {
+                while (rs.next()) if (column.equals(rs.getString("name"))) found = true;
+            }
+            if (!found) {
+                try (Statement stmt = connection.createStatement()) {
+                    stmt.execute("ALTER TABLE trades ADD COLUMN " + column + " TEXT");
+                }
+            }
         }
     }
 
@@ -548,7 +564,9 @@ public class SqliteShopStorage implements ShopStorage {
         @Nonnull String inputItemId,
         int inputQuantity,
         @Nonnull String outputItemId,
-        int outputQuantity
+        int outputQuantity,
+        @Nullable String inputStackData,
+        @Nullable String outputStackData
     ) {
         validateItem(inputItemId, "Input item");
         validateItem(outputItemId, "Output item");
@@ -572,8 +590,8 @@ public class SqliteShopStorage implements ShopStorage {
 
         int tradeId = getNextTradeId(ownerId, normalizedName);
 
-        String sql = "INSERT INTO trades (owner_id, shop_name, trade_id, input_item_id, input_quantity, output_item_id, output_quantity) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO trades (owner_id, shop_name, trade_id, input_item_id, input_quantity, output_item_id, output_quantity, input_stack_data, output_stack_data) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, ownerId);
             pstmt.setString(2, normalizedName);
@@ -582,9 +600,11 @@ public class SqliteShopStorage implements ShopStorage {
             pstmt.setInt(5, inputQuantity);
             pstmt.setString(6, outputItemId);
             pstmt.setInt(7, outputQuantity);
+            pstmt.setString(8, inputStackData);
+            pstmt.setString(9, outputStackData);
             pstmt.executeUpdate();
 
-            return new Trade(tradeId, inputItemId, inputQuantity, outputItemId, outputQuantity);
+            return new Trade(tradeId, inputItemId, inputQuantity, outputItemId, outputQuantity, inputStackData, outputStackData);
         } catch (SQLException e) {
             throw new RuntimeException("Failed to add trade", e);
         }
@@ -598,23 +618,27 @@ public class SqliteShopStorage implements ShopStorage {
         @Nonnull String inputItemId,
         int inputQuantity,
         @Nonnull String outputItemId,
-        int outputQuantity
+        int outputQuantity,
+        @Nullable String inputStackData,
+        @Nullable String outputStackData
     ) {
         validateItem(inputItemId, "Input item");
         validateItem(outputItemId, "Output item");
         validateQuantity(inputQuantity);
         validateQuantity(outputQuantity);
 
-        String sql = "UPDATE trades SET input_item_id = ?, input_quantity = ?, output_item_id = ?, output_quantity = ? " +
+        String sql = "UPDATE trades SET input_item_id = ?, input_quantity = ?, output_item_id = ?, output_quantity = ?, input_stack_data = ?, output_stack_data = ? " +
                      "WHERE owner_id = ? AND shop_name = ? AND trade_id = ?";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, inputItemId);
             pstmt.setInt(2, inputQuantity);
             pstmt.setString(3, outputItemId);
             pstmt.setInt(4, outputQuantity);
-            pstmt.setString(5, ownerId);
-            pstmt.setString(6, normalizeName(shopName));
-            pstmt.setInt(7, tradeId);
+            pstmt.setString(5, inputStackData);
+            pstmt.setString(6, outputStackData);
+            pstmt.setString(7, ownerId);
+            pstmt.setString(8, normalizeName(shopName));
+            pstmt.setInt(9, tradeId);
 
             int updated = pstmt.executeUpdate();
             if (updated == 0) {
@@ -644,7 +668,7 @@ public class SqliteShopStorage implements ShopStorage {
 
     private List<Trade> loadTrades(String ownerId, String shopName) throws SQLException {
         List<Trade> trades = new ArrayList<>();
-        String sql = "SELECT trade_id, input_item_id, input_quantity, output_item_id, output_quantity " +
+        String sql = "SELECT trade_id, input_item_id, input_quantity, output_item_id, output_quantity, input_stack_data, output_stack_data " +
                      "FROM trades WHERE owner_id = ? AND shop_name = ? ORDER BY trade_id";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, ownerId);
@@ -657,7 +681,9 @@ public class SqliteShopStorage implements ShopStorage {
                     String outputItemId = rs.getString("output_item_id");
                     int outputQuantity = rs.getInt("output_quantity");
 
-                    trades.add(new Trade(tradeId, inputItemId, inputQuantity, outputItemId, outputQuantity));
+                    String inputStackData = rs.getString("input_stack_data");
+                    String outputStackData = rs.getString("output_stack_data");
+                    trades.add(new Trade(tradeId, inputItemId, inputQuantity, outputItemId, outputQuantity, inputStackData, outputStackData));
                 }
             }
         }

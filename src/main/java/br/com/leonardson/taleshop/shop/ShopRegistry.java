@@ -111,7 +111,21 @@ public class ShopRegistry {
         @Nonnull String outputItemId,
         int outputQuantity
     ) {
-        return storage.addTrade(ownerId, shopName, inputItemId, inputQuantity, outputItemId, outputQuantity);
+        return addTrade(ownerId, shopName, inputItemId, inputQuantity, outputItemId, outputQuantity, null, null);
+    }
+
+    @Nonnull
+    public synchronized Trade addTrade(
+        @Nonnull String ownerId,
+        @Nonnull String shopName,
+        @Nonnull String inputItemId,
+        int inputQuantity,
+        @Nonnull String outputItemId,
+        int outputQuantity,
+        @Nullable String inputStackData,
+        @Nullable String outputStackData
+    ) {
+        return storage.addTrade(ownerId, shopName, inputItemId, inputQuantity, outputItemId, outputQuantity, inputStackData, outputStackData);
     }
 
     public synchronized void updateTrade(
@@ -123,7 +137,21 @@ public class ShopRegistry {
         @Nonnull String outputItemId,
         int outputQuantity
     ) {
-        storage.updateTrade(ownerId, shopName, tradeId, inputItemId, inputQuantity, outputItemId, outputQuantity);
+        updateTrade(ownerId, shopName, tradeId, inputItemId, inputQuantity, outputItemId, outputQuantity, null, null);
+    }
+
+    public synchronized void updateTrade(
+        @Nonnull String ownerId,
+        @Nonnull String shopName,
+        int tradeId,
+        @Nonnull String inputItemId,
+        int inputQuantity,
+        @Nonnull String outputItemId,
+        int outputQuantity,
+        @Nullable String inputStackData,
+        @Nullable String outputStackData
+    ) {
+        storage.updateTrade(ownerId, shopName, tradeId, inputItemId, inputQuantity, outputItemId, outputQuantity, inputStackData, outputStackData);
     }
 
     public synchronized void removeTrade(@Nonnull String ownerId, @Nonnull String shopName, int tradeId) {

@@ -4,6 +4,7 @@ import br.com.leonardson.taleshop.TaleShop;
 import br.com.leonardson.taleshop.shop.Shop;
 import br.com.leonardson.taleshop.shop.ShopRegistry;
 import br.com.leonardson.taleshop.shop.trade.Trade;
+import br.com.leonardson.taleshop.shop.trade.TradeItems;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.codec.Codec;
@@ -49,6 +50,8 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
     private boolean initialized = false;
     private String inputItemId = null;
     private String outputItemId = null;
+    private String inputStackData = null;
+    private String outputStackData = null;
 
     public TradeEditorPage(
         @Nonnull PlayerRef playerRef,
@@ -150,30 +153,36 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
             // Deselecting the first slot (input)
             firstSelectedSlot = NO_SELECTION;
             inputItemId = null;
+            inputStackData = null;
             inputQuantity = 0;
         } else if (slotIndex == secondSelectedSlot) {
             // Deselecting the second slot (output)
             secondSelectedSlot = NO_SELECTION;
             outputItemId = null;
+            outputStackData = null;
             outputQuantity = 0;
         } else if (firstSelectedSlot == NO_SELECTION) {
             // Selecting first slot (input)
             firstSelectedSlot = slotIndex;
             inputItemId = getSelectionItemId(player.getInventory(), firstSelectedSlot);
+            inputStackData = getSelectionStackData(player.getInventory(), firstSelectedSlot);
             inputQuantity = getSelectionQuantity(player.getInventory(), firstSelectedSlot);
         } else if (secondSelectedSlot == NO_SELECTION) {
             // Selecting second slot (output)
             secondSelectedSlot = slotIndex;
             outputItemId = getSelectionItemId(player.getInventory(), secondSelectedSlot);
+            outputStackData = getSelectionStackData(player.getInventory(), secondSelectedSlot);
             outputQuantity = getSelectionQuantity(player.getInventory(), secondSelectedSlot);
         } else {
             // Both slots occupied, move second to first and set new second
             firstSelectedSlot = secondSelectedSlot;
             inputItemId = outputItemId;
+            inputStackData = outputStackData;
             inputQuantity = outputQuantity;
 
             secondSelectedSlot = slotIndex;
             outputItemId = getSelectionItemId(player.getInventory(), secondSelectedSlot);
+            outputStackData = getSelectionStackData(player.getInventory(), secondSelectedSlot);
             outputQuantity = getSelectionQuantity(player.getInventory(), secondSelectedSlot);
         }
 
@@ -202,7 +211,9 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
         }
 
         inputItemId = trade.inputItemId();
+        inputStackData = trade.inputStackData();
         outputItemId = trade.outputItemId();
+        outputStackData = trade.outputStackData();
         inputQuantity = trade.inputQuantity();
         outputQuantity = trade.outputQuantity();
         initialized = true;
@@ -312,6 +323,12 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
         return itemStack.getItemId();
     }
 
+    @Nullable
+    private String getSelectionStackData(Inventory inventory, int index) {
+        ItemStack stack = inventory.getCombinedArmorHotbarUtilityStorage().getItemStack((short) index);
+        return isRenderableItem(stack) ? TradeItems.encode(stack) : null;
+    }
+
     private boolean isRenderableItem(@Nonnull ItemStack itemStack) {
         if (ItemStack.isEmpty(itemStack)) {
             return false;
@@ -336,8 +353,8 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
         if (!isRenderableItem(itemStack)) {
             return ItemStack.EMPTY;
         }
-        // Only copy ID and quantity. Copying durability/enchantments via SDK methods produces a
-        // partially-constructed ItemStack that crashes the client when rendering quality backgrounds.
+        // Keep the existing ID-only preview workaround for client quality-background crashes.
+        // The selected full stack is captured separately and never reconstructed from this preview.
         return new ItemStack(itemStack.getItemId(), itemStack.getQuantity());
     }
 
@@ -363,10 +380,9 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
             return;
         }
 
-        Inventory inventory = player.getInventory();
-        String inputItem = getSelectionItemId(inventory, firstSelectedSlot);
-        String outputItem = getSelectionItemId(inventory, secondSelectedSlot);
-        if (inputItem.isBlank() || outputItem.isBlank()) {
+        String inputItem = inputItemId;
+        String outputItem = outputItemId;
+        if (inputItem == null || outputItem == null || inputItem.isBlank() || outputItem.isBlank()) {
             playerRef.sendMessage(Message.raw("Select input and output items."));
             return;
         }
@@ -377,10 +393,10 @@ public class TradeEditorPage extends InteractiveCustomUIPage<TradeEditorPage.Tra
 
         try {
             if (tradeId == null) {
-                Trade trade = registry.addTrade(ownerId, shopName, inputItem, inputQuantity, outputItem, outputQuantity);
+                Trade trade = registry.addTrade(ownerId, shopName, inputItem, inputQuantity, outputItem, outputQuantity, inputStackData, outputStackData);
                 playerRef.sendMessage(Message.raw("Trade added (#" + trade.id() + ")."));
             } else {
-                registry.updateTrade(ownerId, shopName, tradeId, inputItem, inputQuantity, outputItem, outputQuantity);
+                registry.updateTrade(ownerId, shopName, tradeId, inputItem, inputQuantity, outputItem, outputQuantity, inputStackData, outputStackData);
                 playerRef.sendMessage(Message.raw("Trade updated (#" + tradeId + ")."));
             }
         } catch (IllegalArgumentException ex) {
